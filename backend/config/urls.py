@@ -25,6 +25,7 @@ from apps.finance.views import (
     FundingSourceViewSet,
 )
 from apps.geo.views import GeoLevelViewSet, GeoUnitViewSet
+from apps.grievances.views import GrievanceTypeViewSet
 from apps.indicators.views import (
     DimensionCategoryViewSet,
     DimensionViewSet,
@@ -76,6 +77,8 @@ router.register(
 router.register("measurements", MeasurementViewSet, basename="measurement")
 # activities
 router.register("activities", ActivityViewSet, basename="activity")
+# grievances (reference data; record workflow is Phase 3)
+router.register("grievance-types", GrievanceTypeViewSet, basename="grievancetype")
 # finance
 router.register("expense-categories", ExpenseCategoryViewSet, basename="expensecategory")
 router.register("funding-sources", FundingSourceViewSet, basename="fundingsource")
