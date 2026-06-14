@@ -1,0 +1,88 @@
+# docker-compose.yml
+services:
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}            # application DB, e.g. "mse"
+      POSTGRES_USER: ${POSTGRES_USER}        # application owner role
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Passed to init.sql via psql variables:
+      METABASE_DB_PASSWORD: ${METABASE_DB_PASSWORD}
+      METABASE_DB_RO_PASSWORD: ${METABASE_DB_RO_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./deploy/postgres/init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"   # localhost only (handy for psql/backups; remove to fully isolate)
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+    volumes:
+      - media:/app/media          # uploaded files (attachments, logos, generated reports)
+      - staticfiles:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks: [internal]
+
+  metabase:
+    image: metabase/metabase:latest   # pin to a specific tag in production, e.g. v0.5x.y
+    restart: unless-stopped
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: metabaseappdb
+      MB_DB_PORT: "5432"
+      MB_DB_USER: metabase_app
+      MB_DB_PASS: ${METABASE_DB_PASSWORD}
+      MB_DB_HOST: db
+      # Served under /metabase by the host nginx — tell Metabase its public base:
+      MB_SITE_URL: ${METABASE_SITE_URL}
+      JAVA_TIMEZONE: ${TZ:-UTC}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks: [internal]
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_MB_DASHBOARD_RESULTS_PHYSICAL:  ${VITE_MB_DASHBOARD_RESULTS_PHYSICAL:-}
+        VITE_MB_DASHBOARD_RESULTS_FRAMEWORK: ${VITE_MB_DASHBOARD_RESULTS_FRAMEWORK:-}
+        VITE_MB_DASHBOARD_FINANCE_CATEGORY:  ${VITE_MB_DASHBOARD_FINANCE_CATEGORY:-}
+        VITE_MB_DASHBOARD_FINANCE_COMPONENT: ${VITE_MB_DASHBOARD_FINANCE_COMPONENT:-}
+        VITE_MB_DASHBOARD_PROCUREMENT:       ${VITE_MB_DASHBOARD_PROCUREMENT:-}
+        VITE_MB_DASHBOARD_GRIEVANCES:        ${VITE_MB_DASHBOARD_GRIEVANCES:-}
+        VITE_MB_DASHBOARD_IMPACT:            ${VITE_MB_DASHBOARD_IMPACT:-}
+        VITE_MB_DASHBOARD_ACTIVITIES:        ${VITE_MB_DASHBOARD_ACTIVITIES:-}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks: [internal]
+
+volumes:
+  pgdata:
+  media:
+  staticfiles:
+
+networks:
+  internal:
+    driver: bridge

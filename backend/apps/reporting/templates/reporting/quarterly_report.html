@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body { font-family: "DejaVu Sans", sans-serif; font-size: 11px; color: #222; }
+    h1 { font-size: 20px; } h2 { font-size: 15px; border-bottom: 1px solid #ccc; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+    th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; }
+    th { background: #f0f4f8; }
+    .muted { color: #888; }
+  </style>
+</head>
+<body>
+  <h1>{{ report.title }}</h1>
+  <p class="muted">
+    {{ project.name }} — {{ project.full_name }}<br />
+    Période : {{ report.period_year }}{% if report.period_quarter %} — T{{ report.period_quarter }}{% endif %}
+  </p>
+
+  <h2>1. Résultats physiques</h2>
+  {% if physical %}
+  <table>
+    <thead><tr><th>Indicateur</th><th>Cumul</th><th>Cible</th><th>Taux (%)</th><th>RAG</th></tr></thead>
+    <tbody>
+      {% for r in physical %}
+      <tr>
+        <td>{{ r.indicator_code }} — {{ r.indicator_name }}</td>
+        <td>{{ r.cumulative_value }}</td>
+        <td>{{ r.target_value }}</td>
+        <td>{{ r.achievement_rate }}</td>
+        <td>{{ r.rag_status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted">Aucune donnée consolidée pour la période.</p>{% endif %}
+
+  <h2>2. Résultats financiers par composante</h2>
+  {% if finance_component %}
+  <table>
+    <thead><tr><th>Composante</th><th>Budget</th><th>Décaissé (cumul)</th><th>Taux décaiss. (%)</th><th>Réalisé (cumul)</th></tr></thead>
+    <tbody>
+      {% for r in finance_component %}
+      <tr>
+        <td>{{ r.component_code }} — {{ r.component_name }}</td>
+        <td>{{ r.budget_total }}</td>
+        <td>{{ r.disbursed_cumulative }}</td>
+        <td>{{ r.disbursement_rate }}</td>
+        <td>{{ r.realised_cumulative }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted">Aucune donnée financière consolidée.</p>{% endif %}
+
+  <h2>3. Passation de marchés</h2>
+  {% if procurement %}
+  <table>
+    <thead><tr><th>Catégorie</th><th>Méthode</th><th>Prévu</th><th>Réalisé</th><th>En cours</th></tr></thead>
+    <tbody>
+      {% for r in procurement %}
+      <tr>
+        <td>{{ r.category_name }}</td>
+        <td>{{ r.method_name }}</td>
+        <td>{{ r.planned_count }}</td>
+        <td>{{ r.completed_count }}</td>
+        <td>{{ r.in_progress_count }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted">Aucune donnée de passation consolidée.</p>{% endif %}
+
+  <h2>4. Plan de gestion des difficultés</h2>
+  <p class="muted">Les écarts et facteurs explicatifs sont renseignés dans les narratifs des mesures.</p>
+</body>
+</html>
