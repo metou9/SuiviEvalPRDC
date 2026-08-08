@@ -10,7 +10,7 @@ import { InputTextarea } from "primereact/inputtextarea";
 import { useTranslation } from "react-i18next";
 
 // fields: [{ name, label, type, options?, required?, optionLabel?, optionValue? }]
-export default function EntityFormDialog({ visible, onHide, fields, initial, onSubmit, title }) {
+export default function EntityFormDialog({ visible, onHide, fields, initial, onSubmit, title, onValuesChange }) {
   const { t } = useTranslation();
   const [values, setValues] = useState({});
   const [errors, setErrors] = useState({});
@@ -21,7 +21,11 @@ export default function EntityFormDialog({ visible, onHide, fields, initial, onS
     setErrors({});
   }, [initial, visible]);
 
-  const set = (name, v) => setValues((s) => ({ ...s, [name]: v }));
+  const set = (name, v) => setValues((s) => {
+    const next = { ...s, [name]: v };
+    onValuesChange?.(next);
+    return next;
+  });
 
   const submit = async () => {
     setSaving(true);

@@ -27,12 +27,30 @@ export default function Activities() {
   const { hasCapability } = useAuth();
   const canCreate = hasCapability("activity.create");
   const [kind, setKind] = useState(null);
+  const [programNodeFilter, setProgramNodeFilter] = useState(null);
   const [dialog, setDialog] = useState({ open: false, initial: null });
 
   const geoUnits = useList("geoUnits", { page_size: 1000 });
-  const geoOptions = (geoUnits.data?.results || []).map((g) => ({ label: g.name, value: g.id }));
+  const programNodes = useList("programNodes", { page_size: 1000, ordering: "order,code" });
+  const indicators = useList("indicators", { page_size: 1000, is_active: true, ordering: "order,code" });
 
-  const params = useMemo(() => ({ page_size: 100, ...(kind ? { kind } : {}) }), [kind]);
+  const geoOptions = (geoUnits.data?.results || []).map((g) => ({ label: g.name, value: g.id }));
+  const programNodeOptions = (programNodes.data?.results || []).map((n) => ({
+    label: `${n.code} — ${n.name}`,
+    value: n.id,
+  }));
+
+  const selectedProgramNode = dialog.initial?.program_node ?? null;
+  const indicatorOptions = (indicators.data?.results || [])
+    .filter((i) => !selectedProgramNode || !i.program_node || i.program_node === selectedProgramNode)
+    .map((i) => ({ label: `${i.code} — ${i.name}`, value: i.id }));
+
+  const params = useMemo(() => ({
+    page_size: 100,
+    ...(kind ? { kind } : {}),
+    ...(programNodeFilter ? { program_node: programNodeFilter } : {}),
+  }), [kind, programNodeFilter]);
+
   const { data, isLoading, refetch } = useList("activities", params);
   const rows = data?.results || [];
   const save = useSave("activities");
@@ -41,6 +59,8 @@ export default function Activities() {
     const f = [
       { name: "kind", label: "Type", type: "dropdown", required: true, options: KINDS.map((k) => ({ label: KIND_LABELS[k], value: k })) },
       { name: "title", label: "Titre", type: "text", required: true, full: true },
+      { name: "program_node", label: "Composante / sous-composante", type: "dropdown", required: true, options: programNodeOptions, full: true },
+      { name: "indicator", label: "Indicateur associé", type: "dropdown", options: indicatorOptions, full: true },
       { name: "date", label: "Date", type: "date", required: true },
       { name: "geo_unit", label: t("measurements.geo_unit"), type: "dropdown", options: geoOptions },
       { name: "location", label: "Lieu", type: "text" },
@@ -77,15 +97,29 @@ export default function Activities() {
     <div>
       <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
         <h4 className="m-0 me-auto">{t("nav.activities")}</h4>
+        <Dropdown
+          placeholder="Composante / sous-composante"
+          value={programNodeFilter}
+          options={programNodeOptions}
+          onChange={(e) => setProgramNodeFilter(e.value)}
+          filter
+          showClear
+          style={{ minWidth: "18rem" }}
+        />
         <Dropdown placeholder="Type" value={kind} options={KINDS.map((k) => ({ label: KIND_LABELS[k], value: k }))} onChange={(e) => setKind(e.value)} showClear />
         {canCreate && (
-          <Button label={t("common.new")} icon="pi pi-plus" onClick={() => { setDraftKind(kind || "TRAINING"); setDialog({ open: true, initial: { kind: kind || "TRAINING" } }); }} />
+          <Button label={t("common.new")} icon="pi pi-plus" onClick={() => {
+            setDraftKind(kind || "TRAINING");
+            setDialog({ open: true, initial: { kind: kind || "TRAINING", program_node: programNodeFilter || null } });
+          }} />
         )}
       </div>
 
       <DataTable value={rows} loading={isLoading} responsiveLayout="stack" breakpoint="960px" paginator rows={25} stripedRows emptyMessage={t("common.empty")}>
         <Column header="Type" body={(r) => KIND_LABELS[r.kind]} />
         <Column field="title" header="Titre" />
+        <Column header="Composante / sous-composante" body={(r) => r.program_node_name ? `${r.program_node_code} — ${r.program_node_name}` : "—"} />
+        <Column header="Indicateur" body={(r) => r.indicator_name ? `${r.indicator_code} — ${r.indicator_name}` : "—"} />
         <Column field="date" header="Date" />
         <Column field="total_participants" header="Participants" />
         <Column header={t("common.status")} body={(r) => <WorkflowBadge status={r.status} />} />
@@ -108,6 +142,7 @@ export default function Activities() {
         fields={fields}
         initial={dialog.initial}
         title={t("nav.activities")}
+        onValuesChange={(next) => setDialog((current) => ({ ...current, initial: next }))}
         onSubmit={async (v) => {
           await save.mutateAsync({ id: v.id, body: v });
           refetch();
