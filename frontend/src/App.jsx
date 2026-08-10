@@ -11,6 +11,9 @@ import { AuthProvider } from "./auth/AuthProvider.jsx";
 import { RequireAuth, RequireCapability } from "./auth/guards.jsx";
 
 import AppShell from "./layout/AppShell.jsx";
+import TechnicalExecution from "./pages/execution/TechnicalExecution.jsx";
+import FinancialExecution from "./pages/execution/FinancialExecution.jsx";
+import Archive from "./pages/Archive.jsx";
 
 import Activities from "./pages/Activities.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -107,6 +110,21 @@ export default function App() {
                     </RequireCapability>
                   }
                 />
+
+                <Route
+  path="/execution/technical"
+  element={<TechnicalExecution />}
+/>
+
+<Route
+  path="/execution/financial"
+  element={<FinancialExecution />}
+/>
+
+<Route
+  path="/archive"
+  element={<Archive />}
+/>
 
                 <Route
                   path="/admin/indicators"
