@@ -32,7 +32,11 @@
     "responsibilities": "Responsabilités",
     "profile": "Profil",
     "execution": "Exécution",
-    "config": "Configuration"
+    "config": "Configuration",
+    "indicators_config": "Configuration indicateur",
+    "technical_execution": "Exécution technique",
+    "financial_execution": "Exécution financière",
+    "archive": "Archivage"
   },
   "common": {
     "new": "Nouveau",
