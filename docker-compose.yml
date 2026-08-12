@@ -40,26 +40,6 @@ services:
       - "127.0.0.1:28000:8000"
     networks: [internal]
 
-  metabase:
-    image: metabase/metabase:latest   # pin to a specific tag in production, e.g. v0.5x.y
-    restart: unless-stopped
-    environment:
-      MB_DB_TYPE: postgres
-      MB_DB_DBNAME: metabaseappdb
-      MB_DB_PORT: "5432"
-      MB_DB_USER: metabase_app
-      MB_DB_PASS: ${METABASE_DB_PASSWORD}
-      MB_DB_HOST: db
-      # Served under /metabase by the host nginx — tell Metabase its public base:
-      MB_SITE_URL: ${METABASE_SITE_URL}
-      JAVA_TIMEZONE: ${TZ:-UTC}
-    depends_on:
-      db:
-        condition: service_healthy
-    ports:
-      - "127.0.0.1:23000:3000"
-    networks: [internal]
-
   frontend:
     build:
       context: ./frontend
