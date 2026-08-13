@@ -7,62 +7,76 @@ const SECTIONS = [
   {
     title: null,
     items: [
+      { to: "/home", key: "home", icon: "pi-home" },
       { to: "/dashboard", key: "dashboard", icon: "pi-chart-bar" },
     ],
   },
+
   {
-    title: "settings_custom",
-    label: "Paramétrage",
+    title: "settings",
     cap: "config.manage",
     items: [
+      { to: "/admin/program", key: "program_structure", icon: "pi-sitemap" },
       { to: "/admin/reference", key: "reference", icon: "pi-database" },
-      { to: "/admin/program", key: "program", icon: "pi-sitemap" },
-      { to: "/admin/indicators", key: "indicators_config", icon: "pi-sliders-h" },
+      { to: "/admin/geo", key: "intervention_zone", icon: "pi-map" },
     ],
   },
+
   {
-    title: "programming_custom",
-    label: "Programmation",
+    title: "programming",
     items: [
-      { to: "/activities", key: "activities", icon: "pi-calendar" },
-      { to: "/finance/budget", key: "budget", icon: "pi-wallet" },
-      { to: "/procurement/ppm", key: "ppm", icon: "pi-list" },
+      { to: "/activities", key: "technical_programming", icon: "pi-calendar" },
+      { to: "/finance/budget", key: "financial_programming", icon: "pi-wallet" },
+      { to: "/procurement/ppm", key: "procurement_programming", icon: "pi-list" },
     ],
   },
+
   {
-    title: "execution_custom",
-    label: "Exécution",
+    title: "execution",
     items: [
-      { to: "/execution/technical", key: "technical_execution", icon: "pi-cog" },
-      { to: "/execution/financial", key: "financial_execution", icon: "pi-money-bill" },
+      { to: "/execution/technical", key: "technical_monitoring", icon: "pi-cog" },
+      { to: "/execution/financial", key: "financial_monitoring", icon: "pi-money-bill" },
+      { to: "/finance/transactions", key: "disbursement_monitoring", icon: "pi-credit-card" },
+      { to: "/procurement/processes", key: "procurement_monitoring", icon: "pi-briefcase" },
+      { to: "/measurements", key: "execution_indicators", icon: "pi-chart-line" },
+      { to: "/execution/infrastructure", key: "infrastructure_works", icon: "pi-building" },
     ],
   },
+
   {
+    title: "results",
+    items: [
+      { to: "/indicators", key: "result_indicators", icon: "pi-chart-bar" },
+    ],
+  },
+
+   {
     title: "reports",
+    cap: "users.manage",
     items: [
       { to: "/reports", key: "reports", icon: "pi-file-pdf" },
     ],
   },
+
   {
-    title: "results_custom",
-    label: "Suivi des résultats",
+    title: "local_structures",
     items: [
-      { to: "/indicators", key: "indicators", icon: "pi-sitemap" },
-      { to: "/measurements", key: "measurements", icon: "pi-pencil" },
+      { to: "/local-structures", key: "local_structures", icon: "pi-building" },
     ],
   },
+
   {
-    title: "archive_custom",
-    label: "Archivage",
-    items: [
-      { to: "/archive", key: "archive", icon: "pi-folder" },
-    ],
-  },
-  {
-    title: "admin",
+    title: "administration",
     cap: "users.manage",
     items: [
       { to: "/admin/users", key: "users", icon: "pi-users" },
+    ],
+  },
+
+  {
+    title: "archive",
+    items: [
+      { to: "/archive", key: "archive", icon: "pi-folder" },
     ],
   },
 ];
@@ -81,7 +95,7 @@ export default function Sidebar({ className = "", onNavigate }) {
         <div key={i}>
           {s.title && (
             <div className="section-title">
-              {s.label || t(`nav.${s.title}`)}
+              {t(`nav.${s.title}`)}
             </div>
           )}
 

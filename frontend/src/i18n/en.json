@@ -9,7 +9,37 @@
     "error": "Invalid credentials"
   },
   "nav": {
+    "home": "Home",
     "dashboard": "Dashboard",
+
+    "settings": "Settings",
+    "program_structure": "Components / Sub-components",
+    "reference": "Reference Data",
+    "intervention_zone": "Intervention Area",
+    "communes": "Communes",
+    "villages": "Villages",
+
+    "programming": "Planning",
+    "technical_programming": "Technical Planning",
+    "financial_programming": "Financial Planning",
+    "procurement_programming": "Procurement Planning",
+
+    "execution": "Execution",
+    "technical_monitoring": "Technical Monitoring",
+    "financial_monitoring": "Financial Monitoring",
+    "disbursement_monitoring": "Disbursement Monitoring",
+    "procurement_monitoring": "Procurement Monitoring",
+    "execution_indicators": "Execution Indicator Monitoring",
+    "infrastructure_works": "Infrastructure Works",
+
+    "results": "Results",
+    "result_indicators": "Results Indicator Monitoring",
+
+    "printing": "Printing",
+    "local_structures": "Local Structures Monitoring",
+    "administration": "Administrative Management / Coordination",
+    "archive": "Electronic Archive",
+
     "indicators": "Results framework",
     "measurements": "Measurements",
     "activities": "Activities",
@@ -27,17 +57,13 @@
     "admin": "Administration",
     "geo": "Geography",
     "program": "Programme",
-    "reference": "Reference data",
     "users": "Users",
     "responsibilities": "Responsibilities",
     "profile": "Profile",
-    "execution": "Execution",
     "config": "Configuration",
     "indicators_config": "Indicator configuration",
     "technical_execution": "Technical execution",
-    "financial_execution": "Financial execution",
-    "archive": "Archive"
-
+    "financial_execution": "Financial execution"
   },
   "common": {
     "new": "New",

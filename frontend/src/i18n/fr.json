@@ -9,7 +9,37 @@
     "error": "Identifiants invalides"
   },
   "nav": {
+    "home": "Accueil",
     "dashboard": "Tableau de bord",
+
+    "settings": "Paramétrage",
+    "program_structure": "Composantes / Sous Composantes",
+    "reference": "Données de référence",
+    "intervention_zone": "Zone d’intervention",
+    "communes": "Communes",
+    "villages": "Villages",
+
+    "programming": "Programmation",
+    "technical_programming": "Programmation Technique",
+    "financial_programming": "Programmation financière",
+    "procurement_programming": "Programmation des Marchés",
+
+    "execution": "Exécution",
+    "technical_monitoring": "Suivi Technique",
+    "financial_monitoring": "Suivi Financier",
+    "disbursement_monitoring": "Suivi des Décaissements",
+    "procurement_monitoring": "Suivi des Marchés",
+    "execution_indicators": "Suivi des Indicateurs d’exécution",
+    "infrastructure_works": "Travaux d’infrastructures",
+
+    "results": "Résultats",
+    "result_indicators": "Suivi Indicateurs de Résultats",
+
+    "printing": "Impression",
+    "local_structures": "Suivi Structures Locale",
+    "administration": "Gestion Administrative/Coordination",
+    "archive": "Archivage Électronique",
+
     "indicators": "Cadre de résultats",
     "measurements": "Mesures",
     "activities": "Activités",
@@ -27,16 +57,13 @@
     "admin": "Administration",
     "geo": "Géographie",
     "program": "Programme",
-    "reference": "Données de référence",
     "users": "Utilisateurs",
     "responsibilities": "Responsabilités",
     "profile": "Profil",
-    "execution": "Exécution",
     "config": "Configuration",
     "indicators_config": "Configuration indicateur",
     "technical_execution": "Exécution technique",
-    "financial_execution": "Exécution financière",
-    "archive": "Archivage"
+    "financial_execution": "Exécution financière"
   },
   "common": {
     "new": "Nouveau",
