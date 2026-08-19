@@ -9,9 +9,44 @@ import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
 import { useTranslation } from "react-i18next";
 
-// fields: [{ name, label, type, options?, required?, optionLabel?, optionValue? }]
-export default function EntityFormDialog({ visible, onHide, fields, initial, onSubmit, title, onValuesChange }) {
+/*
+ * fields:
+ *
+ * [
+ *   {
+ *     name,
+ *     label,
+ *     type,
+ *     options?,
+ *     required?,
+ *     optionLabel?,
+ *     optionValue?,
+ *     visible?,
+ *   }
+ * ]
+ *
+ * options peut être :
+ *
+ *   - un tableau
+ *   - une fonction (values) => tableau
+ *
+ * visible peut être :
+ *
+ *   - true / false
+ *   - une fonction (values) => true / false
+ */
+
+export default function EntityFormDialog({
+  visible,
+  onHide,
+  fields,
+  initial,
+  onSubmit,
+  title,
+  onValuesChange,
+}) {
   const { t } = useTranslation();
+
   const [values, setValues] = useState({});
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -21,25 +56,78 @@ export default function EntityFormDialog({ visible, onHide, fields, initial, onS
     setErrors({});
   }, [initial, visible]);
 
-  const set = (name, v) => setValues((s) => {
-    const next = { ...s, [name]: v };
-    onValuesChange?.(next);
-    return next;
-  });
+
+  // ------------------------------------------------------------------
+  // Modification d'une valeur du formulaire
+  // ------------------------------------------------------------------
+
+  const set = (name, value) => {
+    setValues((current) => {
+      const next = {
+        ...current,
+        [name]: value,
+      };
+
+      onValuesChange?.(next);
+
+      return next;
+    });
+  };
+
+
+  // ------------------------------------------------------------------
+  // Visibilité dynamique d'un champ
+  // ------------------------------------------------------------------
+
+  const isFieldVisible = (field) => {
+    if (typeof field.visible === "function") {
+      return field.visible(values);
+    }
+
+    if (field.visible === false) {
+      return false;
+    }
+
+    return true;
+  };
+
+
+  // ------------------------------------------------------------------
+  // Options dynamiques
+  // ------------------------------------------------------------------
+
+  const getFieldOptions = (field) => {
+    if (typeof field.options === "function") {
+      return field.options(values) || [];
+    }
+
+    return field.options || [];
+  };
+
+
+  // ------------------------------------------------------------------
+  // Soumission
+  // ------------------------------------------------------------------
 
   const submit = async () => {
     setSaving(true);
     setErrors({});
+
     try {
       await onSubmit(values);
       onHide();
     } catch (e) {
       const data = e?.response?.data;
+
       if (data && typeof data === "object") {
         const mapped = {};
-        for (const [k, v] of Object.entries(data)) {
-          mapped[k] = Array.isArray(v) ? v.join(" ") : String(v);
+
+        for (const [key, value] of Object.entries(data)) {
+          mapped[key] = Array.isArray(value)
+            ? value.join(" ")
+            : String(value);
         }
+
         setErrors(mapped);
       }
     } finally {
@@ -47,76 +135,191 @@ export default function EntityFormDialog({ visible, onHide, fields, initial, onS
     }
   };
 
-  const renderField = (f) => {
-    const v = values[f.name];
-    const common = { id: f.name, className: "w-100" };
-    switch (f.type) {
+
+  // ------------------------------------------------------------------
+  // Rendu d'un champ
+  // ------------------------------------------------------------------
+
+  const renderField = (field) => {
+    const value = values[field.name];
+
+    const common = {
+      id: field.name,
+      className: "w-100",
+    };
+
+    switch (field.type) {
+
       case "number":
         return (
           <InputNumber
             {...common}
-            value={v ?? null}
-            onValueChange={(e) => set(f.name, e.value)}
+            value={value ?? null}
+            onValueChange={(e) =>
+              set(field.name, e.value)
+            }
             mode="decimal"
             minFractionDigits={0}
             maxFractionDigits={2}
           />
         );
+
+
       case "textarea":
         return (
-          <InputTextarea {...common} value={v ?? ""} onChange={(e) => set(f.name, e.target.value)} rows={3} />
+          <InputTextarea
+            {...common}
+            value={value ?? ""}
+            onChange={(e) =>
+              set(field.name, e.target.value)
+            }
+            rows={3}
+          />
         );
+
+
       case "dropdown":
         return (
           <Dropdown
             {...common}
-            value={v ?? null}
-            options={f.options || []}
-            optionLabel={f.optionLabel || "label"}
-            optionValue={f.optionValue || "value"}
-            onChange={(e) => set(f.name, e.value)}
+            value={value ?? null}
+            options={getFieldOptions(field)}
+            optionLabel={field.optionLabel || "label"}
+            optionValue={field.optionValue || "value"}
+            onChange={(e) =>
+              set(field.name, e.value)
+            }
             filter
-            showClear={!f.required}
+            showClear={!field.required}
           />
         );
+
+
       case "date":
         return (
           <Calendar
             {...common}
-            value={v ? new Date(v) : null}
+            value={
+              value
+                ? new Date(value)
+                : null
+            }
             onChange={(e) =>
-              set(f.name, e.value ? e.value.toISOString().slice(0, 10) : null)
+              set(
+                field.name,
+                e.value
+                  ? e.value.toISOString().slice(0, 10)
+                  : null
+              )
             }
             dateFormat="yy-mm-dd"
             showIcon
           />
         );
+
+
       case "checkbox":
-        return <Checkbox checked={!!v} onChange={(e) => set(f.name, e.checked)} />;
+        return (
+          <Checkbox
+            checked={!!value}
+            onChange={(e) =>
+              set(field.name, e.checked)
+            }
+          />
+        );
+
+
       default:
-        return <InputText {...common} value={v ?? ""} onChange={(e) => set(f.name, e.target.value)} />;
+        return (
+          <InputText
+            {...common}
+            value={value ?? ""}
+            onChange={(e) =>
+              set(field.name, e.target.value)
+            }
+          />
+        );
     }
   };
 
+
+  // ------------------------------------------------------------------
+  // Interface
+  // ------------------------------------------------------------------
+
   return (
-    <Dialog header={title} visible={visible} onHide={onHide} style={{ width: "40rem" }} maximizable>
+    <Dialog
+      header={title}
+      visible={visible}
+      onHide={onHide}
+      style={{ width: "40rem" }}
+      maximizable
+    >
       <div className="row g-3">
-        {(fields || []).map((f) => (
-          <div className={f.full ? "col-12" : "col-12 col-md-6"} key={f.name}>
-            <label htmlFor={f.name} className="form-label">
-              {f.label}
-              {f.required && <span className="text-danger"> *</span>}
-            </label>
-            {renderField(f)}
-            {errors[f.name] && <div className="text-danger small">{errors[f.name]}</div>}
-          </div>
-        ))}
+
+        {(fields || [])
+          .filter(isFieldVisible)
+          .map((field) => (
+
+            <div
+              className={
+                field.full
+                  ? "col-12"
+                  : "col-12 col-md-6"
+              }
+              key={field.name}
+            >
+
+              <label
+                htmlFor={field.name}
+                className="form-label"
+              >
+                {field.label}
+
+                {field.required && (
+                  <span className="text-danger">
+                    {" "}*
+                  </span>
+                )}
+              </label>
+
+              {renderField(field)}
+
+              {errors[field.name] && (
+                <div className="text-danger small">
+                  {errors[field.name]}
+                </div>
+              )}
+
+            </div>
+          ))}
+
       </div>
-      {errors.detail && <div className="text-danger mt-2">{errors.detail}</div>}
+
+
+      {errors.detail && (
+        <div className="text-danger mt-2">
+          {errors.detail}
+        </div>
+      )}
+
+
       <div className="d-flex justify-content-end gap-2 mt-3">
-        <Button label={t("common.cancel")} text onClick={onHide} />
-        <Button label={t("common.save")} loading={saving} onClick={submit} />
+
+        <Button
+          label={t("common.cancel")}
+          text
+          onClick={onHide}
+        />
+
+        <Button
+          label={t("common.save")}
+          loading={saving}
+          onClick={submit}
+        />
+
       </div>
+
     </Dialog>
   );
 }

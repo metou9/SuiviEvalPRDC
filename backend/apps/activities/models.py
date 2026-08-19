@@ -1,8 +1,7 @@
 from django.db import models
-from django.conf import settings
 from simple_history.models import HistoricalRecords
 
-from apps.core.models import BaseModel, ProjectOwnedModel, WorkflowMixin
+from apps.core.models import ProjectOwnedModel
 
 
 class WorkPlan(ProjectOwnedModel):
@@ -22,6 +21,7 @@ class WorkPlan(ProjectOwnedModel):
 
     code = models.CharField(
         max_length=50,
+        null=True,
         blank=True,
     )
 
@@ -73,24 +73,42 @@ class WorkPlan(ProjectOwnedModel):
         return f"{self.name} - {self.year}"
 
 
-class Activity(WorkflowMixin, ProjectOwnedModel):
-    WORKFLOW_AREA = "activity"
+class Activity(ProjectOwnedModel):
+    """
+    Activité de la programmation technique.
 
-    class Kind(models.TextChoices):
-        TRAINING = "TRAINING", "Formation"
-        AWARENESS = "AWARENESS", "Sensibilisation"
-        FIELD_VISIT = "FIELD_VISIT", "Visite de terrain"
-        VISIT_RECEIVED = "VISIT_RECEIVED", "Visite reçue"
-        MEETING = "MEETING", "Réunion"
-        SUBPROJECT = "SUBPROJECT", "Sous-projet"
-        STAKEHOLDER = "STAKEHOLDER", "Autre intervenant"
-        OBSERVATION = "OBSERVATION", "Changement observé"
+    Une activité appartient directement à une sous-composante.
+    La composante est obtenue via :
+        activity.program_node.parent
 
-    # Nouveaux champs de référence de l'activité
+    Les champs created_at, updated_at, created_by et updated_by
+    sont hérités automatiquement de ProjectOwnedModel.
+    """
+
+    project = models.ForeignKey(
+        "core.Project",
+        on_delete=models.CASCADE,
+        related_name="activities",
+    )
+
+    # ------------------------------------------------------------------
+    # Identification
+    # ------------------------------------------------------------------
+
     code = models.CharField(
         max_length=50,
+        null=True,
         blank=True,
+
     )
+
+    title = models.CharField(
+        max_length=500,
+    )
+
+    # ------------------------------------------------------------------
+    # Exercice / PTBA
+    # ------------------------------------------------------------------
 
     workplan = models.ForeignKey(
         "activities.WorkPlan",
@@ -100,164 +118,189 @@ class Activity(WorkflowMixin, ProjectOwnedModel):
         related_name="activities",
     )
 
-    responsible = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="responsible_activities",
-    )
-
-    expected_result = models.TextField(
-        blank=True,
-    )
-
-    # Champs existants
-    project = models.ForeignKey(
-        "core.Project",
-        on_delete=models.CASCADE,
-        related_name="activities"
-    )
-
-    kind = models.CharField(
-        max_length=20,
-        choices=Kind.choices
-    )
-
-    geo_unit = models.ForeignKey(
-        "geo.GeoUnit",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="activities"
-    )
+    # ------------------------------------------------------------------
+    # Sous-composante
+    # ------------------------------------------------------------------
+    # L'activité est directement liée à une sous-composante.
+    # La composante est obtenue par program_node.parent.
+    # ------------------------------------------------------------------
 
     program_node = models.ForeignKey(
         "program.ProgramNode",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="+"
+        related_name="activities",
     )
 
-    indicator = models.ForeignKey(
-        "indicators.Indicator",
+    # ------------------------------------------------------------------
+    # Responsable / Partenaire
+    # ------------------------------------------------------------------
+
+    responsible = models.ForeignKey(
+        "core.Partner",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="+"
+        related_name="activities",
     )
 
-    title = models.CharField(
-        max_length=500
+    # ------------------------------------------------------------------
+    # Programmation temporelle
+    # ------------------------------------------------------------------
+
+    start_date = models.DateField(
+        null=True,
+        blank=True,
     )
 
-    date = models.DateField()
-
-    location = models.CharField(
-        max_length=255,
-        blank=True
+    end_date = models.DateField(
+        null=True,
+        blank=True,
     )
 
-    organizer = models.CharField(
-        max_length=255,
-        blank=True
+    # ------------------------------------------------------------------
+    # Unité et quantité programmée
+    # ------------------------------------------------------------------
+
+    unit = models.ForeignKey(
+        "core.UnitOfMeasure",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="activities",
     )
 
-    duration_hours = models.DecimalField(
-        max_digits=8,
+    planned_quantity = models.DecimalField(
+        max_digits=18,
         decimal_places=2,
         null=True,
-        blank=True
+        blank=True,
     )
 
-    objective = models.TextField(
-        blank=True
+    # ------------------------------------------------------------------
+    # Importance
+    # ------------------------------------------------------------------
+
+    importance = models.CharField(
+        max_length=255,
+        blank=True,
     )
+
+    # ------------------------------------------------------------------
+    # Budget programmé
+    # ------------------------------------------------------------------
+
+    programmed_budget = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+
+    # ------------------------------------------------------------------
+    # Description
+    # Conservée pour utilisation éventuelle.
+    # ------------------------------------------------------------------
 
     description = models.TextField(
-        blank=True
-    )
-
-    total_participants = models.PositiveIntegerField(
         null=True,
-        blank=True
+        blank=True,
+        default=None,
     )
 
-    women_count = models.PositiveIntegerField(
-        null=True,
-        blank=True
-    )
-
-    youth_count = models.PositiveIntegerField(
-        null=True,
-        blank=True
-    )
-
-    # Sub-project fields
-    submission_date = models.DateField(
-        null=True,
-        blank=True
-    )
-
-    funding_requested = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        null=True,
-        blank=True
-    )
-
-    funding_obtained = models.DecimalField(
-        max_digits=18,
-        decimal_places=2,
-        null=True,
-        blank=True
-    )
-
-    funding_date = models.DateField(
-        null=True,
-        blank=True
-    )
-
-    management_committee = models.CharField(
-        max_length=500,
-        blank=True
-    )
-
-    beneficiary_org = models.CharField(
-        max_length=500,
-        blank=True
-    )
-
-    # Stakeholder fields
-    actor_name = models.CharField(
-        max_length=255,
-        blank=True
-    )
-
-    implantation_date = models.DateField(
-        null=True,
-        blank=True
-    )
-
-    main_actions = models.TextField(
-        blank=True
-    )
-
+    # Historisation existante du module Activity
     history = HistoricalRecords()
 
     class Meta:
-        indexes = [
-            models.Index(fields=["project", "kind", "date"]),
-            models.Index(fields=["geo_unit"]),
-            models.Index(fields=["status"]),
-            models.Index(fields=["workplan"]),
-            models.Index(fields=["code"]),
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "code"],
+                name="unique_activity_code_per_project",
+            ),
         ]
-        ordering = ["-date"]
+
+        indexes = [
+            models.Index(fields=["project", "code"]),
+            models.Index(fields=["workplan"]),
+            models.Index(fields=["program_node"]),
+            models.Index(fields=["responsible"]),
+        ]
+
+        ordering = ["code"]
+
+    def clean(self):
+        super().clean()
+
+        from django.core.exceptions import ValidationError
+        from apps.program.models import ProgramNode
+
+        # --------------------------------------------------------------
+        # Sous-composante obligatoire si renseignée
+        # --------------------------------------------------------------
+
+        if self.program_node_id:
+            if (
+                self.program_node.node_type
+                != ProgramNode.NodeType.SUBCOMPONENT
+            ):
+                raise ValidationError({
+                    "program_node":
+                    "Une activité doit être rattachée à une sous-composante."
+                })
+
+            if self.program_node.project_id != self.project_id:
+                raise ValidationError({
+                    "program_node":
+                    "La sous-composante doit appartenir au même projet."
+                })
+
+        # --------------------------------------------------------------
+        # PTBA du même projet
+        # --------------------------------------------------------------
+
+        if self.workplan_id:
+            if self.workplan.project_id != self.project_id:
+                raise ValidationError({
+                    "workplan":
+                    "L'exercice/PTBA doit appartenir au même projet."
+                })
+
+        # --------------------------------------------------------------
+        # Responsable / Partenaire du même projet
+        # --------------------------------------------------------------
+
+        if self.responsible_id:
+            if self.responsible.project_id != self.project_id:
+                raise ValidationError({
+                    "responsible":
+                    "Le responsable/partenaire doit appartenir au même projet."
+                })
+
+        # --------------------------------------------------------------
+        # Unité de mesure du même projet
+        # --------------------------------------------------------------
+
+        if self.unit_id:
+            if self.unit.project_id != self.project_id:
+                raise ValidationError({
+                    "unit":
+                    "L'unité de mesure doit appartenir au même projet."
+                })
+
+        # --------------------------------------------------------------
+        # Cohérence des dates
+        # --------------------------------------------------------------
+
+        if self.start_date and self.end_date:
+            if self.end_date < self.start_date:
+                raise ValidationError({
+                    "end_date":
+                    "La date de fin ne peut pas être antérieure à la date de début."
+                })
 
     def __str__(self):
-        return f"[{self.kind}] {self.title}"
+        return f"{self.code} — {self.title}"
 
 
 class ActivityParticipant(models.Model):
@@ -268,30 +311,30 @@ class ActivityParticipant(models.Model):
     activity = models.ForeignKey(
         Activity,
         on_delete=models.CASCADE,
-        related_name="participants"
+        related_name="participants",
     )
 
     full_name = models.CharField(
-        max_length=255
+        max_length=255,
     )
 
     origin = models.CharField(
         max_length=255,
-        blank=True
+        blank=True,
     )
 
     organization = models.CharField(
         max_length=255,
-        blank=True
+        blank=True,
     )
 
     function = models.CharField(
         max_length=255,
-        blank=True
+        blank=True,
     )
 
     sex = models.CharField(
         max_length=1,
         choices=Sex.choices,
-        blank=True
+        blank=True,
     )

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "primereact/button";
-import { Card } from "primereact/card";
 import { InputText } from "primereact/inputtext";
 import { Password } from "primereact/password";
 import { useNavigate } from "react-router-dom";
@@ -33,59 +32,65 @@ export default function Login() {
   };
 
   return (
-    <main className="login-wrap">
-      <div className="login-overlay" />
+  <main className="login-page">
 
-      <Card className="login-card">
-        <div className="login-header">
-          <h1>Bienvenue</h1>
+    {/* ===================================================== */}
+    {/* GAUCHE — CONNEXION */}
+    {/* ===================================================== */}
 
-          <p>
-            Connectez-vous pour accéder
-            <br />
-            à la plateforme de suivi-évaluation
-            <br />
-            du PRDC-VFS
-          </p>
-        </div>
+    <section className="login-form-panel">
+      <div className="login-form-container">
+
+
+        <h2>Accéder à la plateforme</h2>
+
+        <p className="login-form-intro">
+          Identifiez-vous pour accéder à votre espace de suivi-évaluation.
+        </p>
 
         <form onSubmit={submit} className="login-form">
           <div className="login-field">
-            <label htmlFor="username">Nom d’utilisateur</label>
+            <label htmlFor="username">
+              Nom d’utilisateur
+            </label>
 
-            <InputText
-              id="username"
-              className="w-100"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoFocus
-              autoComplete="username"
-              disabled={loading}
-              placeholder="Nom d’utilisateur"
-            />
+            <span className="login-input-container">
+              <i className="pi pi-user" />
+
+              <InputText
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoFocus
+                autoComplete="username"
+                disabled={loading}
+                placeholder="Saisissez votre nom d’utilisateur"
+              />
+            </span>
           </div>
 
           <div className="login-field">
-            <label htmlFor="password">Mot de passe</label>
+            <label htmlFor="password">
+              Mot de passe
+            </label>
 
             <Password
               id="password"
-              className="w-100"
-              inputClassName="w-100"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               feedback={false}
               toggleMask
               autoComplete="current-password"
               disabled={loading}
-              placeholder="Mot de passe"
+              placeholder="Saisissez votre mot de passe"
             />
           </div>
 
           {error && (
-            <small className="login-error" role="alert">
+            <div className="login-error">
+              <i className="pi pi-exclamation-circle" />
               Identifiants invalides
-            </small>
+            </div>
           )}
 
           <Button
@@ -93,14 +98,95 @@ export default function Login() {
             label="Se connecter"
             loading={loading}
             disabled={loading || !username.trim() || !password}
-            className="login-button"
+            className="login-submit"
           />
         </form>
+      </div>
+    </section>
 
-        <footer className="login-footer">
-          © 2026 Binor &amp; Associés / I&amp;D - Tous droits réservés
-        </footer>
-      </Card>
-    </main>
-  );
+
+    {/* ===================================================== */}
+    {/* DROITE — PRÉSENTATION DU PROJET */}
+    {/* ===================================================== */}
+
+    <section className="login-project-panel">
+      <div className="login-project-top">
+        <div className="login-project-mark">
+          <span>PR</span>
+        </div>
+
+        <div>
+          <div className="login-project-code">
+            PRDC-VFS
+          </div>
+
+          <div className="login-project-module">
+            Suivi &amp; Évaluation
+          </div>
+        </div>
+      </div>
+<div className="login-project-logos">
+  <div className="login-project-logo-card">
+    <img
+      src="/images/logo-mauritanie.svg"
+      alt="République Islamique de Mauritanie"
+    />
+  </div>
+
+  <div className="login-project-logo-card">
+    <img
+      src="/images/logo-prdc-vfs.png"
+      alt="PRDC-VFS"
+    />
+  </div>
+
+  <div className="login-project-logo-card login-project-logo-worldbank">
+    <img
+      src="/images/logo-worldbank.png"
+      alt="Banque mondiale"
+    />
+  </div>
+</div>
+      <div className="login-project-content">
+        <span className="login-project-eyebrow">
+          PLATEFORME DE PILOTAGE
+        </span>
+
+        <h1>
+          Plateforme de suivi-évaluation
+          <br />
+          du PRDC-VFS
+        </h1>
+
+        <p>
+          Un espace centralisé pour la programmation, le suivi de
+          l'exécution, le pilotage financier, le suivi des marchés
+          et la mesure des résultats du projet.
+        </p>
+
+        <div className="login-project-features">
+          <div>
+            <i className="pi pi-calendar" />
+            <span>Programmation</span>
+          </div>
+
+          <div>
+            <i className="pi pi-chart-line" />
+            <span>Suivi des résultats</span>
+          </div>
+
+          <div>
+            <i className="pi pi-wallet" />
+            <span>Pilotage financier</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="login-project-footer">
+        © 2026 <strong>Binor &amp; Associés</strong> — Tous droits réservés
+      </div>
+    </section>
+
+  </main>
+);
 }

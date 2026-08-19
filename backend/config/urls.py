@@ -17,7 +17,15 @@ from apps.accounts.views import (
     UserViewSet,
 )
 from apps.activities.views import ActivityViewSet
-from apps.core.views import AttachmentViewSet, MilestoneViewSet, ProjectViewSet
+from apps.core.views import (
+    ActorViewSet,
+    AttachmentViewSet,
+    AuditLogViewSet,
+    MilestoneViewSet,
+    PartnerViewSet,
+    ProjectViewSet,
+    UnitOfMeasureViewSet,
+)
 from apps.finance.views import (
     BudgetLineViewSet,
     ExpenseCategoryViewSet,
@@ -56,6 +64,10 @@ router = DefaultRouter()
 router.register("projects", ProjectViewSet, basename="project")
 router.register("milestones", MilestoneViewSet, basename="milestone")
 router.register("attachments", AttachmentViewSet, basename="attachment")
+router.register("units-of-measure", UnitOfMeasureViewSet, basename="unitofmeasure")
+router.register("actors", ActorViewSet, basename="actor")
+router.register("partners", PartnerViewSet, basename="partner")
+router.register("audit-logs", AuditLogViewSet, basename="auditlog")
 # accounts
 router.register("users", UserViewSet, basename="user")
 router.register("roles", RoleViewSet, basename="role")

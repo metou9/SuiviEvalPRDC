@@ -24,6 +24,11 @@
     "financial_programming": "Programmation financière",
     "procurement_programming": "Programmation des Marchés",
 
+    "units": "Unités de mesure",
+    "actors": "Acteurs",
+    "partners": "Responsable / Partenaire",
+    "audit_history": "Historique",
+
     "execution": "Exécution",
     "technical_monitoring": "Suivi Technique",
     "financial_monitoring": "Suivi Financier",
@@ -37,7 +42,7 @@
 
     "printing": "Impression",
     "local_structures": "Suivi Structures Locale",
-    "administration": "Gestion Administrative/Coordination",
+    "administration": "Gestion Administrative",
     "archive": "Archivage Électronique",
 
     "indicators": "Cadre de résultats",

@@ -24,6 +24,11 @@
     "financial_programming": "Financial Planning",
     "procurement_programming": "Procurement Planning",
 
+    "units": "Units of measure",
+    "actors": "Actors",
+    "partners": "Responsible / Partner",
+    "audit_history": "History",
+
     "execution": "Execution",
     "technical_monitoring": "Technical Monitoring",
     "financial_monitoring": "Financial Monitoring",
@@ -37,7 +42,7 @@
 
     "printing": "Printing",
     "local_structures": "Local Structures Monitoring",
-    "administration": "Administrative Management / Coordination",
+    "administration": "Administrative Management",
     "archive": "Electronic Archive",
 
     "indicators": "Results framework",

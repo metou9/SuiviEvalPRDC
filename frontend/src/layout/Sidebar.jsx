@@ -1,14 +1,24 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../auth/AuthProvider.jsx";
 
+
 const SECTIONS = [
   {
     title: null,
     items: [
-      { to: "/home", key: "home", icon: "pi-home" },
-      { to: "/dashboard", key: "dashboard", icon: "pi-chart-bar" },
+      {
+        to: "/home",
+        key: "home",
+        icon: "pi-home",
+      },
+      {
+        to: "/dashboard",
+        key: "dashboard",
+        icon: "pi-chart-bar",
+      },
     ],
   },
 
@@ -16,52 +26,102 @@ const SECTIONS = [
     title: "settings",
     cap: "config.manage",
     items: [
-      { to: "/admin/program", key: "program_structure", icon: "pi-sitemap" },
-      { to: "/admin/reference", key: "reference", icon: "pi-database" },
-      { to: "/admin/geo", key: "intervention_zone", icon: "pi-map" },
+      {
+        to: "/admin/reference",
+        key: "reference",
+        icon: "pi-database",
+      },
     ],
   },
 
   {
     title: "programming",
     items: [
-      { to: "/activities", key: "technical_programming", icon: "pi-calendar" },
-      { to: "/finance/budget", key: "financial_programming", icon: "pi-wallet" },
-      { to: "/procurement/ppm", key: "procurement_programming", icon: "pi-list" },
+      {
+        to: "/activities",
+        key: "technical_programming",
+        icon: "pi-calendar",
+      },
+      {
+        to: "/finance/budget",
+        key: "financial_programming",
+        icon: "pi-wallet",
+      },
+      {
+        to: "/procurement/ppm",
+        key: "procurement_programming",
+        icon: "pi-list",
+      },
     ],
   },
 
   {
     title: "execution",
     items: [
-      { to: "/execution/technical", key: "technical_monitoring", icon: "pi-cog" },
-      { to: "/execution/financial", key: "financial_monitoring", icon: "pi-money-bill" },
-      { to: "/finance/transactions", key: "disbursement_monitoring", icon: "pi-credit-card" },
-      { to: "/procurement/processes", key: "procurement_monitoring", icon: "pi-briefcase" },
-      { to: "/measurements", key: "execution_indicators", icon: "pi-chart-line" },
-      { to: "/execution/infrastructure", key: "infrastructure_works", icon: "pi-building" },
+      {
+        to: "/execution/technical",
+        key: "technical_monitoring",
+        icon: "pi-cog",
+      },
+      {
+        to: "/execution/financial",
+        key: "financial_monitoring",
+        icon: "pi-money-bill",
+      },
+      {
+        to: "/finance/transactions",
+        key: "disbursement_monitoring",
+        icon: "pi-credit-card",
+      },
+      {
+        to: "/procurement/processes",
+        key: "procurement_monitoring",
+        icon: "pi-briefcase",
+      },
+      {
+        to: "/measurements",
+        key: "execution_indicators",
+        icon: "pi-chart-line",
+      },
+      {
+        to: "/execution/infrastructure",
+        key: "infrastructure_works",
+        icon: "pi-building",
+      },
     ],
   },
 
   {
     title: "results",
     items: [
-      { to: "/indicators", key: "result_indicators", icon: "pi-chart-bar" },
+      {
+        to: "/indicators",
+        key: "result_indicators",
+        icon: "pi-chart-bar",
+      },
     ],
   },
 
-   {
+  {
     title: "reports",
     cap: "users.manage",
     items: [
-      { to: "/reports", key: "reports", icon: "pi-file-pdf" },
+      {
+        to: "/reports",
+        key: "reports",
+        icon: "pi-file-pdf",
+      },
     ],
   },
 
   {
     title: "local_structures",
     items: [
-      { to: "/local-structures", key: "local_structures", icon: "pi-building" },
+      {
+        to: "/local-structures",
+        key: "local_structures",
+        icon: "pi-building",
+      },
     ],
   },
 
@@ -69,44 +129,167 @@ const SECTIONS = [
     title: "administration",
     cap: "users.manage",
     items: [
-      { to: "/admin/users", key: "users", icon: "pi-users" },
+      {
+        to: "/admin/users",
+        key: "users",
+        icon: "pi-users",
+      },
     ],
   },
 
   {
     title: "archive",
     items: [
-      { to: "/archive", key: "archive", icon: "pi-folder" },
+      {
+        to: "/archive",
+        key: "archive",
+        icon: "pi-folder",
+      },
     ],
   },
 ];
 
-export default function Sidebar({ className = "", onNavigate }) {
+
+export default function Sidebar({
+  className = "",
+  onNavigate,
+}) {
   const { t } = useTranslation();
   const { hasCapability } = useAuth();
 
+  const [collapsed, setCollapsed] = useState(false);
+
+
+  const visibleSections = SECTIONS.filter(
+    (section) =>
+      !section.cap ||
+      hasCapability(section.cap)
+  );
+
+
   return (
-    <nav className={`app-sidebar ${className}`}>
-      <div className="p-3 fw-bold" style={{ color: "#fff" }}>
-        {t("app.title")}
+    <nav
+      className={
+        `app-sidebar ${collapsed ? "collapsed" : ""} ${className}`
+      }
+    >
+
+      {/* ======================================================= */}
+      {/* IDENTITÉ PLATEFORME */}
+      {/* ======================================================= */}
+
+      <div className="sidebar-brand">
+
+        <div className="sidebar-brand-mark">
+          <span>PR</span>
+        </div>
+
+        {!collapsed && (
+          <div className="sidebar-brand-text">
+
+            <span className="sidebar-brand-title">
+              PRDC-VFS
+            </span>
+
+            <span className="sidebar-brand-subtitle">
+              Suivi &amp; Évaluation
+            </span>
+
+          </div>
+        )}
+
       </div>
 
-      {SECTIONS.filter((s) => !s.cap || hasCapability(s.cap)).map((s, i) => (
-        <div key={i}>
-          {s.title && (
-            <div className="section-title">
-              {t(`nav.${s.title}`)}
-            </div>
+
+      {/* ======================================================= */}
+      {/* NAVIGATION */}
+      {/* ======================================================= */}
+
+      <div className="sidebar-navigation">
+
+        {visibleSections.map((section, index) => (
+          <div
+            className="sidebar-section"
+            key={index}
+          >
+
+            {section.title && !collapsed && (
+              <div className="section-title">
+                {t(`nav.${section.title}`)}
+              </div>
+            )}
+
+
+            {section.items.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={onNavigate}
+                title={
+                  collapsed
+                    ? t(`nav.${item.key}`)
+                    : undefined
+                }
+                className={({ isActive }) =>
+                  `sidebar-link${isActive ? " active" : ""}`
+                }
+              >
+
+                <span className="sidebar-link-icon">
+                  <i className={`pi ${item.icon}`} />
+                </span>
+
+
+                {!collapsed && (
+                  <span className="sidebar-link-label">
+                    {t(`nav.${item.key}`)}
+                  </span>
+                )}
+
+              </NavLink>
+            ))}
+
+          </div>
+        ))}
+
+      </div>
+
+
+      {/* ======================================================= */}
+      {/* RÉDUIRE / AGRANDIR */}
+      {/* ======================================================= */}
+
+      <div className="sidebar-collapse-container">
+
+        <button
+          type="button"
+          className="sidebar-collapse-button"
+          onClick={() => setCollapsed((value) => !value)}
+          title={
+            collapsed
+              ? "Agrandir le menu"
+              : "Réduire le menu"
+          }
+        >
+
+          <i
+            className={
+              collapsed
+                ? "pi pi-angle-right"
+                : "pi pi-angle-left"
+            }
+          />
+
+          {!collapsed && (
+            <span>
+              Réduire
+            </span>
           )}
 
-          {s.items.map((it) => (
-            <NavLink key={it.to} to={it.to} onClick={onNavigate}>
-              <i className={`pi ${it.icon} me-2`} />
-              {t(`nav.${it.key}`)}
-            </NavLink>
-          ))}
-        </div>
-      ))}
+        </button>
+
+      </div>
+
     </nav>
   );
 }
