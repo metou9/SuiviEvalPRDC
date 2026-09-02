@@ -61,7 +61,13 @@ export const api = {
   indicatorResponsibilities: resource("indicator-responsibilities"),
   measurements: resource("measurements"),
 
+  // Programmation / Activités / PTBA
   activities: resource("activities"),
+  workplans: resource("workplans"),
+  technicalPlans: resource("technical-plans"),
+  technicalSchedules: resource("technical-schedules"),
+  technicalExecutions: resource("technical-executions"),
+ 
 
   expenseCategories: resource("expense-categories"),
   fundingSources: resource("funding-sources"),

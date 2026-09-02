@@ -624,7 +624,288 @@ class TechnicalSchedule(ProjectOwnedModel):
             f"{self.get_month_display()}"
         )
 
+# ======================================================================
+# EXECUTION / SUIVI TECHNIQUE
+# ======================================================================
 
+class TechnicalExecution(ProjectOwnedModel):
+    """
+    Suivi de l'exécution physique d'une programmation technique.
+
+    Une programmation technique peut avoir plusieurs saisies de suivi
+    au cours de l'exercice.
+    """
+
+    class Status(models.TextChoices):
+        NOT_STARTED = "NOT_STARTED", "Non démarrée"
+        IN_PROGRESS = "IN_PROGRESS", "En cours"
+        COMPLETED = "COMPLETED", "Terminée"
+        SUSPENDED = "SUSPENDED", "Suspendue"
+        CANCELLED = "CANCELLED", "Annulée"
+
+    project = models.ForeignKey(
+        "core.Project",
+        on_delete=models.CASCADE,
+        related_name="technical_executions",
+    )
+
+    technical_plan = models.ForeignKey(
+        TechnicalPlan,
+        on_delete=models.CASCADE,
+        related_name="executions",
+    )
+
+    # ------------------------------------------------------------------
+    # DATE DU SUIVI
+    # ------------------------------------------------------------------
+
+    reporting_date = models.DateField()
+
+    # ------------------------------------------------------------------
+    # PERIODE
+    # ------------------------------------------------------------------
+
+    period_year = models.PositiveIntegerField()
+
+    period_quarter = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+    )
+
+    period_month = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+    )
+
+    # ------------------------------------------------------------------
+    # REALISATION PHYSIQUE
+    # ------------------------------------------------------------------
+
+    actual_quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+
+    physical_progress_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+
+    execution_status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.NOT_STARTED,
+    )
+
+    # ------------------------------------------------------------------
+    # DATES REELLES
+    # ------------------------------------------------------------------
+
+    actual_start_date = models.DateField(
+        null=True,
+        blank=True,
+    )
+
+    actual_end_date = models.DateField(
+        null=True,
+        blank=True,
+    )
+
+    # ------------------------------------------------------------------
+    # ECARTS / DIFFICULTES / MESURES CORRECTIVES
+    # ------------------------------------------------------------------
+
+    difficulties = models.TextField(
+        blank=True,
+    )
+
+    corrective_actions = models.TextField(
+        blank=True,
+    )
+
+    observations = models.TextField(
+        blank=True,
+    )
+
+    class Meta:
+        ordering = [
+            "-reporting_date",
+            "-created_at",
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "project",
+                    "technical_plan",
+                ]
+            ),
+            models.Index(
+                fields=[
+                    "technical_plan",
+                    "reporting_date",
+                ]
+            ),
+            models.Index(
+                fields=[
+                    "execution_status",
+                ]
+            ),
+        ]
+
+    # ==================================================================
+    # VALIDATION
+    # ==================================================================
+
+    def clean(self):
+        super().clean()
+
+        # --------------------------------------------------------------
+        # PROGRAMMATION TECHNIQUE / PROJET
+        # --------------------------------------------------------------
+
+        if self.technical_plan_id:
+            if self.technical_plan.project_id != self.project_id:
+                raise ValidationError({
+                    "technical_plan":
+                        "La programmation technique doit appartenir "
+                        "au même projet."
+                })
+
+        # --------------------------------------------------------------
+        # EXERCICE
+        # --------------------------------------------------------------
+
+        if (
+            self.period_year < 2010
+            or
+            self.period_year > 2090
+        ):
+            raise ValidationError({
+                "period_year":
+                    "L'exercice doit être compris entre 2010 et 2090."
+            })
+
+        # --------------------------------------------------------------
+        # TRIMESTRE
+        # --------------------------------------------------------------
+
+        if self.period_quarter is not None:
+            if (
+                self.period_quarter < 1
+                or
+                self.period_quarter > 4
+            ):
+                raise ValidationError({
+                    "period_quarter":
+                        "Le trimestre doit être compris entre 1 et 4."
+                })
+
+        # --------------------------------------------------------------
+        # MOIS
+        # --------------------------------------------------------------
+
+        if self.period_month is not None:
+            if (
+                self.period_month < 1
+                or
+                self.period_month > 12
+            ):
+                raise ValidationError({
+                    "period_month":
+                        "Le mois doit être compris entre 1 et 12."
+                })
+
+        # --------------------------------------------------------------
+        # QUANTITE REALISEE
+        # --------------------------------------------------------------
+
+        if (
+            self.actual_quantity is not None
+            and
+            self.actual_quantity < 0
+        ):
+            raise ValidationError({
+                "actual_quantity":
+                    "La quantité réalisée ne peut pas être négative."
+            })
+
+        # --------------------------------------------------------------
+        # TAUX PHYSIQUE
+        # --------------------------------------------------------------
+
+        if self.physical_progress_percent is not None:
+            if (
+                self.physical_progress_percent < 0
+                or
+                self.physical_progress_percent > 100
+            ):
+                raise ValidationError({
+                    "physical_progress_percent":
+                        "Le taux de réalisation doit être compris "
+                        "entre 0 et 100."
+                })
+
+        # --------------------------------------------------------------
+        # COHERENCE DES DATES
+        # --------------------------------------------------------------
+
+        if (
+            self.actual_start_date
+            and
+            self.actual_end_date
+            and
+            self.actual_end_date < self.actual_start_date
+        ):
+            raise ValidationError({
+                "actual_end_date":
+                    "La date réelle de fin ne peut pas être antérieure "
+                    "à la date réelle de début."
+            })
+
+    def save(self, *args, **kwargs):
+        # --------------------------------------------------------------
+        # CALCUL AUTOMATIQUE DU TAUX DE REALISATION PHYSIQUE
+        #
+        # quantité réalisée / quantité prévue × 100
+        # --------------------------------------------------------------
+
+        if (
+            self.technical_plan_id
+            and
+            self.actual_quantity is not None
+            and
+            self.technical_plan.planned_quantity
+            and
+            self.technical_plan.planned_quantity > 0
+        ):
+            progress = (
+                self.actual_quantity
+                /
+                self.technical_plan.planned_quantity
+            ) * 100
+
+            # On limite à 100 % pour cet indicateur d'avancement.
+            self.physical_progress_percent = min(
+                progress,
+                100,
+            )
+
+        super().save(
+            *args,
+            **kwargs
+        )
+
+    def __str__(self):
+        return (
+            f"{self.technical_plan.activity} — "
+            f"{self.reporting_date}"
+        )
+    
 # ======================================================================
 # PARTICIPANTS
 # ======================================================================
@@ -671,3 +952,5 @@ class ActivityParticipant(models.Model):
         choices=Sex.choices,
         blank=True,
     )
+
+    

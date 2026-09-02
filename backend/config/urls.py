@@ -22,6 +22,7 @@ from apps.accounts.views import (
 
 from apps.activities.views import (
     ActivityViewSet,
+    TechnicalExecutionViewSet,
     TechnicalPlanViewSet,
     TechnicalScheduleViewSet,
     WorkPlanViewSet,
@@ -266,6 +267,13 @@ router.register(
     "technical-schedules",
     TechnicalScheduleViewSet,
     basename="technicalschedule",
+)
+
+# Suivi / Exécution technique
+router.register(
+    "technical-executions",
+    TechnicalExecutionViewSet,
+    basename="technicalexecution",
 )
 
 
