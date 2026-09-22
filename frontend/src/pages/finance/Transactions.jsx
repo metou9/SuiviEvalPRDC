@@ -203,6 +203,60 @@ export default function Transactions() {
     data ||
     [];
 
+  // Les indicateurs doivent couvrir toutes les transactions, même lorsqu'un
+  // filtre Type est appliqué à la liste détaillée ci-dessous.
+  const allTransactionsQuery = useList("financialTransactions", {
+    page_size: 5000,
+    ordering: "-date",
+  });
+  const allTransactions = allTransactionsQuery.data?.results || allTransactionsQuery.data || [];
+  const money = (amount) => `${formatAmount(amount)} MRU`;
+  const monitoringRows = useMemo(() => {
+    const grouped = new Map();
+    for (const line of budgetLineRecords) {
+      if (!line.activity) continue;
+      const key = `${line.activity}-${line.fiscal_year}`;
+      if (!grouped.has(key)) grouped.set(key, {
+        key,
+        activity: `${line.activity_code ? `${line.activity_code} — ` : ""}${line.activity_title || `Activité #${line.activity}`}`,
+        year: line.fiscal_year,
+        budget: 0, engagements: 0, disbursements: 0, realizations: 0,
+      });
+      grouped.get(key).budget += Number(line.amount || 0);
+    }
+    const lineMap = new Map(budgetLineRecords.map((line) => [Number(line.id), line]));
+    for (const transaction of allTransactions) {
+      const line = lineMap.get(Number(transaction.budget_line));
+      if (!line?.activity) continue;
+      const item = grouped.get(`${line.activity}-${line.fiscal_year}`);
+      if (!item) continue;
+      const amount = Number(transaction.amount || 0);
+      if (transaction.kind === "ENGAGEMENT") item.engagements += amount;
+      if (transaction.kind === "DISBURSEMENT") item.disbursements += amount;
+      // Les suivis financiers par activité ([T1]…[T4]) sont affichés
+      // dans Suivi financier, pas comptés comme dépenses justifiées ici.
+      if (transaction.kind === "REALIZATION" &&
+          !/^\[T[1-4]\](?:\n|$)/.test(String(transaction.narrative || ""))) {
+        item.realizations += amount;
+      }
+    }
+    return [...grouped.values()].map((item) => ({
+      ...item,
+      balance: item.budget - item.realizations,
+      rate: item.budget > 0 ? item.realizations / item.budget * 100 : 0,
+    }));
+  }, [budgetLineRecords, allTransactions]);
+  const totals = monitoringRows.reduce((sum, item) => {
+    sum.budget += item.budget;
+    sum.engagements += item.engagements;
+    sum.disbursements += item.disbursements;
+    sum.realizations += item.realizations;
+    return sum;
+  }, { budget: 0, engagements: 0, disbursements: 0, realizations: 0 });
+  const totalBalance = totals.budget - totals.realizations;
+  const totalRate = totals.budget > 0 ? totals.realizations / totals.budget * 100 : 0;
+
+
 
   // ====================================================================
   // SAVE / DELETE
@@ -295,6 +349,7 @@ export default function Transactions() {
 
 
         refetch();
+        allTransactionsQuery.refetch();
 
       } catch (error) {
 
@@ -515,6 +570,7 @@ export default function Transactions() {
 
 
         refetch();
+        allTransactionsQuery.refetch();
 
       } catch (error) {
 
@@ -889,6 +945,7 @@ export default function Transactions() {
 
 
         refetch();
+        allTransactionsQuery.refetch();
 
       } catch (error) {
 
@@ -975,7 +1032,7 @@ export default function Transactions() {
           <h4
             className="m-0"
           >
-            Transactions financières
+            Suivi des décaissements
           </h4>
 
 
@@ -1052,6 +1109,48 @@ export default function Transactions() {
 
       </div>
 
+
+      {/* INDICATEURS DU SUIVI DES DECAISSEMENTS */}
+      <div className="row g-3 mb-4">
+        {[
+          ["Budget programmé", totals.budget],
+          ["Engagements", totals.engagements],
+          ["Décaissements", totals.disbursements],
+          ["Dépenses justifiées", totals.realizations],
+          ["Solde", totalBalance],
+        ].map(([label, value]) => (
+          <div className="col-12 col-md-6 col-xl-2" key={label}>
+            <div className="border rounded p-3 h-100">
+              <div className="text-muted mb-2">{label}</div>
+              <h4 className="mb-1">{formatAmount(value)}</h4>
+              <span className="text-muted">MRU</span>
+            </div>
+          </div>
+        ))}
+        <div className="col-12 col-md-6 col-xl-2">
+          <div className="border rounded p-3 h-100">
+            <div className="text-muted mb-2">Taux réalisation financière</div>
+            <h4>{totalRate.toFixed(1)} %</h4>
+          </div>
+        </div>
+      </div>
+
+      {/* RECAPITULATIF PAR ACTIVITE ET EXERCICE */}
+      <h5 className="mb-3">Suivi des décaissements par activité</h5>
+      <DataTable value={monitoringRows} dataKey="key" loading={budgetLines.isLoading || allTransactionsQuery.isLoading}
+        paginator rows={25} rowsPerPageOptions={[25, 50, 100]} responsiveLayout="scroll"
+        emptyMessage="Aucune programmation financière">
+        <Column field="activity" header="Activité" />
+        <Column field="year" header="Exercice" />
+        <Column header="Budget programmé" body={(r) => money(r.budget)} />
+        <Column header="Engagements" body={(r) => money(r.engagements)} />
+        <Column header="Décaissements" body={(r) => money(r.disbursements)} />
+        <Column header="Dépenses justifiées" body={(r) => money(r.realizations)} />
+        <Column header="Solde" body={(r) => money(r.balance)} />
+        <Column header="Taux réalisation financière" body={(r) => `${r.rate.toFixed(1)} %`} />
+      </DataTable>
+
+      <h5 className="mt-4 mb-3">Détail des opérations</h5>
 
       {/* ============================================================= */}
       {/* TABLEAU */}

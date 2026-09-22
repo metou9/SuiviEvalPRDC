@@ -503,7 +503,7 @@ export default function TechnicalExecution() {
 
     if (!values.reporting_date) {
       throw new Error(
-        "La date de suivi est obligatoire."
+        "La date de réalisation est obligatoire."
       );
     }
 
@@ -812,7 +812,7 @@ export default function TechnicalExecution() {
             field:
               "reporting_date",
             header:
-              "Date de suivi",
+              "Date de réalisation",
           },
 
           {
@@ -826,16 +826,7 @@ export default function TechnicalExecution() {
               ),
           },
 
-          {
-            field:
-              "period_month",
-            header: "Mois",
 
-            body: (row) =>
-              monthLabel(
-                row.period_month
-              ),
-          },
         ]}
 
 
@@ -844,157 +835,37 @@ export default function TechnicalExecution() {
         // ============================================================
 
         fields={[
-          // ----------------------------------------------------------
-          // ACTIVITE PROGRAMMEE
-          // ----------------------------------------------------------
-
           {
-            name:
-              "technical_plan",
-            label:
-              "Activité programmée",
+            name: "technical_plan",
+            label: "Activité programmée",
             type: "dropdown",
             required: true,
-            options:
-              technicalPlanOptions,
+            options: technicalPlanOptions,
             full: true,
           },
-
-
-          // ----------------------------------------------------------
-          // DATE DE SUIVI
-          // ----------------------------------------------------------
-
           {
-            name:
-              "reporting_date",
-            label: "Date de suivi",
+            name: "reporting_date",
+            label: "Date de réalisation",
             type: "date",
             required: true,
           },
-
-
-          // ----------------------------------------------------------
-          // QUANTITE REALISEE
-          // ----------------------------------------------------------
-
           {
-            name:
-              "actual_quantity",
-            label:
-              "Quantité réalisée",
-            type: "number",
-          },
-
-
-          // ----------------------------------------------------------
-          // STATUT
-          // ----------------------------------------------------------
-
-          {
-            name:
-              "execution_status",
-            label:
-              "Statut d'exécution",
-            type: "dropdown",
-            required: true,
-            options:
-              EXECUTION_STATUS_OPTIONS,
-          },
-
-
-          // ----------------------------------------------------------
-          // TRIMESTRE
-          // ----------------------------------------------------------
-
-          {
-            name:
-              "period_quarter",
+            name: "period_quarter",
             label: "Trimestre",
             type: "dropdown",
-            options:
-              QUARTER_OPTIONS,
+            options: QUARTER_OPTIONS,
           },
-
-
-          // ----------------------------------------------------------
-          // MOIS
-          // ----------------------------------------------------------
-
           {
-            name:
-              "period_month",
-            label: "Mois",
+            name: "actual_quantity",
+            label: "Quantité réalisée",
+            type: "number",
+          },
+          {
+            name: "execution_status",
+            label: "Statut d'exécution",
             type: "dropdown",
-            options:
-              MONTH_OPTIONS,
-          },
-
-
-          // ----------------------------------------------------------
-          // DATE REELLE DE DEBUT
-          // ----------------------------------------------------------
-
-          {
-            name:
-              "actual_start_date",
-            label:
-              "Date réelle de début",
-            type: "date",
-          },
-
-
-          // ----------------------------------------------------------
-          // DATE REELLE DE FIN
-          // ----------------------------------------------------------
-
-          {
-            name:
-              "actual_end_date",
-            label:
-              "Date réelle de fin",
-            type: "date",
-          },
-
-
-          // ----------------------------------------------------------
-          // DIFFICULTES
-          // ----------------------------------------------------------
-
-          {
-            name:
-              "difficulties",
-            label:
-              "Difficultés rencontrées",
-            type: "textarea",
-            full: true,
-          },
-
-
-          // ----------------------------------------------------------
-          // ACTIONS CORRECTIVES
-          // ----------------------------------------------------------
-
-          {
-            name:
-              "corrective_actions",
-            label:
-              "Actions correctives",
-            type: "textarea",
-            full: true,
-          },
-
-
-          // ----------------------------------------------------------
-          // OBSERVATIONS
-          // ----------------------------------------------------------
-
-          {
-            name:
-              "observations",
-            label: "Observations",
-            type: "textarea",
-            full: true,
+            required: true,
+            options: EXECUTION_STATUS_OPTIONS,
           },
         ]}
       />

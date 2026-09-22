@@ -16,11 +16,24 @@ export default function Activities() {
   const { hasCapability } = useAuth();
 
   const canCreate = hasCapability("activity.create");
-
   const currentYear = new Date().getFullYear();
 
+
+  // ====================================================================
+  // FILTRES
+  // ====================================================================
+
+  const [componentFilter, setComponentFilter] = useState(null);
   const [programNodeFilter, setProgramNodeFilter] = useState(null);
   const [search, setSearch] = useState("");
+
+
+  // ====================================================================
+  // PAGINATION SERVEUR
+  // ====================================================================
+
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
 
   const [dialog, setDialog] = useState({
     open: false,
@@ -58,14 +71,6 @@ export default function Activities() {
     ordering: "name",
   });
 
-  /*
-   * On conserve WorkPlan/PTBA dans la structure existante.
-   * L'utilisateur ne choisit cependant plus un PTBA :
-   * il saisit simplement l'année de l'exercice.
-   *
-   * On charge tous les exercices, actifs ou non,
-   * afin d'éviter de recréer un exercice déjà existant.
-   */
   const workplans = useList("workplans", {
     page_size: 1000,
     ordering: "-year,name",
@@ -118,34 +123,203 @@ export default function Activities() {
 
 
   // ====================================================================
-  // OPTIONS - ZONES D'INTERVENTION
+  // HIERARCHIE GEOGRAPHIQUE
+  //
+  // 0 = Wilaya
+  // 1 = Moughataa
+  // 2 = Commune
+  // 3 = Village / Localité
   // ====================================================================
 
-  /*
-   * Global n'est PAS créé comme GeoUnit.
-   * Une activité globale est enregistrée avec geo_unit = null.
-   */
-  const geoOptions = [
-    {
-      label: "Global",
-      value: null,
-    },
+  const getGeoRank = (geo) => {
+    if (!geo) {
+      return null;
+    }
 
-    ...geoRecords.map((g) => {
-      const level = g.geo_level_name
-        ? `${g.geo_level_name} — `
-        : "";
+    if (
+      geo.geo_level_rank !== undefined &&
+      geo.geo_level_rank !== null
+    ) {
+      return Number(geo.geo_level_rank);
+    }
 
-      return {
-        label: `${level}${g.name}`,
-        value: g.id,
-      };
-    }),
-  ];
+    const levelName = String(
+      geo.geo_level_name ||
+      geo.level_name ||
+      ""
+    ).toLowerCase();
+
+    if (levelName.includes("wilaya")) {
+      return 0;
+    }
+
+    if (levelName.includes("moughataa")) {
+      return 1;
+    }
+
+    if (levelName.includes("commune")) {
+      return 2;
+    }
+
+    if (
+      levelName.includes("village") ||
+      levelName.includes("localité") ||
+      levelName.includes("localite")
+    ) {
+      return 3;
+    }
+
+    return null;
+  };
 
 
   // ====================================================================
-  // OPTIONS - COMPOSANTES
+  // RETROUVER UNE GEO UNIT
+  // ====================================================================
+
+  const getGeoUnit = (id) => {
+    if (!id) {
+      return null;
+    }
+
+    return (
+      geoRecords.find(
+        (geo) =>
+          Number(geo.id) ===
+          Number(id)
+      ) || null
+    );
+  };
+
+
+  // ====================================================================
+  // RECONSTRUIRE LA HIERARCHIE GEOGRAPHIQUE
+  // ====================================================================
+
+  const getGeoHierarchy = (geoUnitId) => {
+    const result = {
+      wilaya: null,
+      moughataa: null,
+      commune: null,
+      village: null,
+    };
+
+    if (!geoUnitId) {
+      return result;
+    }
+
+    let current = getGeoUnit(geoUnitId);
+
+    while (current) {
+      const rank = getGeoRank(current);
+
+      if (rank === 0) {
+        result.wilaya = current.id;
+      }
+
+      if (rank === 1) {
+        result.moughataa = current.id;
+      }
+
+      if (rank === 2) {
+        result.commune = current.id;
+      }
+
+      if (rank === 3) {
+        result.village = current.id;
+      }
+
+      if (!current.parent) {
+        break;
+      }
+
+      current = getGeoUnit(current.parent);
+    }
+
+    return result;
+  };
+
+
+  // ====================================================================
+  // OPTIONS WILAYA
+  // ====================================================================
+
+  const wilayaOptions = geoRecords
+    .filter(
+      (geo) =>
+        getGeoRank(geo) === 0
+    )
+    .map((geo) => ({
+      label: geo.name,
+      value: geo.id,
+    }));
+
+
+  // ====================================================================
+  // OPTIONS MOUGHATAA
+  // ====================================================================
+
+  const selectedWilaya =
+    dialog.initial?.wilaya ?? null;
+
+  const moughataaOptions = geoRecords
+    .filter(
+      (geo) =>
+        getGeoRank(geo) === 1 &&
+        selectedWilaya &&
+        Number(geo.parent) ===
+          Number(selectedWilaya)
+    )
+    .map((geo) => ({
+      label: geo.name,
+      value: geo.id,
+    }));
+
+
+  // ====================================================================
+  // OPTIONS COMMUNE
+  // ====================================================================
+
+  const selectedMoughataa =
+    dialog.initial?.moughataa ?? null;
+
+  const communeOptions = geoRecords
+    .filter(
+      (geo) =>
+        getGeoRank(geo) === 2 &&
+        selectedMoughataa &&
+        Number(geo.parent) ===
+          Number(selectedMoughataa)
+    )
+    .map((geo) => ({
+      label: geo.name,
+      value: geo.id,
+    }));
+
+
+  // ====================================================================
+  // OPTIONS VILLAGE / LOCALITE
+  // ====================================================================
+
+  const selectedCommune =
+    dialog.initial?.commune ?? null;
+
+  const villageOptions = geoRecords
+    .filter(
+      (geo) =>
+        getGeoRank(geo) === 3 &&
+        selectedCommune &&
+        Number(geo.parent) ===
+          Number(selectedCommune)
+    )
+    .map((geo) => ({
+      label: geo.name,
+      value: geo.id,
+    }));
+
+
+  // ====================================================================
+  // OPTIONS COMPOSANTES
   // ====================================================================
 
   const componentOptions = programNodeRecords
@@ -158,9 +332,11 @@ export default function Activities() {
       value: node.id,
     }));
 
+  const allComponentOptions = componentOptions;
+
 
   // ====================================================================
-  // OPTIONS - SOUS-COMPOSANTES SELON COMPOSANTE
+  // OPTIONS SOUS-COMPOSANTES DU FORMULAIRE
   // ====================================================================
 
   const selectedComponent =
@@ -188,14 +364,24 @@ export default function Activities() {
 
 
   // ====================================================================
-  // OPTIONS - TOUTES LES SOUS-COMPOSANTES POUR LE FILTRE TABLEAU
+  // OPTIONS SOUS-COMPOSANTES DU FILTRE
   // ====================================================================
 
   const allSubcomponentOptions = programNodeRecords
-    .filter(
-      (node) =>
-        node.node_type === "SUBCOMPONENT"
-    )
+    .filter((node) => {
+      if (node.node_type !== "SUBCOMPONENT") {
+        return false;
+      }
+
+      if (!componentFilter) {
+        return true;
+      }
+
+      return (
+        Number(node.parent) ===
+        Number(componentFilter)
+      );
+    })
     .map((node) => ({
       label: `${node.code} — ${node.name}`,
       value: node.id,
@@ -203,29 +389,33 @@ export default function Activities() {
 
 
   // ====================================================================
-  // OPTIONS - RESPONSABLES / PARTENAIRES
+  // RESPONSABLES
   // ====================================================================
 
-  const partnerOptions = partnerRecords.map((partner) => ({
-    label: partner.name,
-    value: partner.id,
-  }));
-
-
-  // ====================================================================
-  // OPTIONS - UNITES DE MESURE
-  // ====================================================================
-
-  const unitOptions = unitRecords.map((unit) => ({
-    label: unit.symbol
-      ? `${unit.name} (${unit.symbol})`
-      : unit.name,
-    value: unit.id,
-  }));
+  const partnerOptions = partnerRecords.map(
+    (partner) => ({
+      label: partner.name,
+      value: partner.id,
+    })
+  );
 
 
   // ====================================================================
-  // OPTIONS - INDICATEURS
+  // UNITES
+  // ====================================================================
+
+  const unitOptions = unitRecords.map(
+    (unit) => ({
+      label: unit.symbol
+        ? `${unit.name} (${unit.symbol})`
+        : unit.name,
+      value: unit.id,
+    })
+  );
+
+
+  // ====================================================================
+  // INDICATEURS
   // ====================================================================
 
   const selectedProgramNode =
@@ -253,26 +443,57 @@ export default function Activities() {
 
 
   // ====================================================================
-  // PARAMETRES DE RECHERCHE ACTIVITES
+  // SOUS-COMPOSANTES DE LA COMPOSANTE FILTREE
+  // ====================================================================
+
+  const filteredSubcomponentIds = useMemo(() => {
+    if (!componentFilter) {
+      return [];
+    }
+
+    return programNodeRecords
+      .filter(
+        (node) =>
+          node.node_type === "SUBCOMPONENT" &&
+          Number(node.parent) ===
+            Number(componentFilter)
+      )
+      .map(
+        (node) =>
+          Number(node.id)
+      );
+  }, [
+    componentFilter,
+    programNodeRecords,
+  ]);
+
+
+  // ====================================================================
+  // PARAMETRES ACTIVITES
   // ====================================================================
 
   const params = useMemo(
     () => ({
-      page_size: 100,
+      page,
+      page_size: rowsPerPage,
 
       ...(programNodeFilter
         ? {
-            program_node: programNodeFilter,
+            program_node:
+              programNodeFilter,
           }
         : {}),
 
       ...(search.trim()
         ? {
-            search: search.trim(),
+            search:
+              search.trim(),
           }
         : {}),
     }),
     [
+      page,
+      rowsPerPage,
       programNodeFilter,
       search,
     ]
@@ -292,10 +513,41 @@ export default function Activities() {
     params
   );
 
-  const rows =
+  const apiRows =
     data?.results ||
     data ||
     [];
+
+
+  // ====================================================================
+  // FILTRAGE COMPOSANTE
+  // ====================================================================
+
+  const rows = useMemo(() => {
+    if (programNodeFilter) {
+      return apiRows;
+    }
+
+    if (!componentFilter) {
+      return apiRows;
+    }
+
+    return apiRows.filter(
+      (activity) =>
+        filteredSubcomponentIds.includes(
+          Number(activity.program_node)
+        )
+    );
+  }, [
+    apiRows,
+    componentFilter,
+    programNodeFilter,
+    filteredSubcomponentIds,
+  ]);
+
+  const totalRecords =
+    data?.count ??
+    rows.length;
 
 
   // ====================================================================
@@ -319,7 +571,7 @@ export default function Activities() {
   const fields = [
 
     // ------------------------------------------------------------------
-    // IDENTIFICATION DE L'ACTIVITE
+    // IDENTIFICATION
     // ------------------------------------------------------------------
 
     {
@@ -370,16 +622,53 @@ export default function Activities() {
 
 
     // ------------------------------------------------------------------
-    // LOCALISATION / RESPONSABILITE
+    // ZONE D'INTERVENTION
+    //
+    // Tous ces champs sont FACULTATIFS.
+    //
+    // Aucun choix = Global.
+    // Wilaya seulement = niveau Wilaya.
+    // Moughataa = niveau Moughataa.
+    // Commune = niveau Commune.
+    // Village = niveau Village.
     // ------------------------------------------------------------------
 
     {
-      name: "geo_unit",
-      label: "Zone d’intervention",
+      name: "wilaya",
+      label: "Wilaya",
       type: "dropdown",
-      options: geoOptions,
+      options: wilayaOptions,
       full: true,
     },
+
+    {
+      name: "moughataa",
+      label: "Moughataa",
+      type: "dropdown",
+      options: moughataaOptions,
+      full: true,
+    },
+
+    {
+      name: "commune",
+      label: "Commune",
+      type: "dropdown",
+      options: communeOptions,
+      full: true,
+    },
+
+    {
+      name: "village",
+      label: "Village / Localité",
+      type: "dropdown",
+      options: villageOptions,
+      full: true,
+    },
+
+
+    // ------------------------------------------------------------------
+    // RESPONSABILITE
+    // ------------------------------------------------------------------
 
     {
       name: "responsible",
@@ -416,7 +705,7 @@ export default function Activities() {
 
 
     // ------------------------------------------------------------------
-    // PROGRAMMATION / EXERCICE
+    // PROGRAMMATION
     // ------------------------------------------------------------------
 
     {
@@ -424,7 +713,7 @@ export default function Activities() {
       label: "Exercice",
       type: "text",
       required: true,
-      placeholder: "Ex. 2025",
+      placeholder: "Ex. 2026",
     },
 
     {
@@ -448,26 +737,14 @@ export default function Activities() {
       required: true,
     },
 
-    {
-      name: "implementation_modality",
-      label: "Modalités de mise en œuvre",
-      type: "textarea",
-      full: true,
-    },
-
-    {
-      name: "expected_output",
-      label: "Extrant attendu",
-      type: "textarea",
-      full: true,
-    },
-
-    {
-      name: "observations",
-      label: "Observation",
-      type: "textarea",
-      full: true,
-    },
+    /*
+     * Modalités de mise en œuvre
+     * Extrant attendu
+     * Observation
+     *
+     * NE SONT PLUS AFFICHES DANS LE FORMULAIRE.
+     * Les champs restent dans le modèle et la base.
+     */
   ];
 
 
@@ -500,23 +777,19 @@ export default function Activities() {
       return "Global";
     }
 
-    if (!row.geo_unit_name) {
-      return "Global";
+    if (row.geo_unit_name) {
+      return row.geo_unit_name;
     }
 
-    if (row.geo_level_name) {
-      return (
-        `${row.geo_level_name} — ` +
-        `${row.geo_unit_name}`
-      );
-    }
+    const geo =
+      getGeoUnit(row.geo_unit);
 
-    return row.geo_unit_name;
+    return geo?.name || "Global";
   };
 
 
   // ====================================================================
-  // AFFICHAGE RESPONSABLE
+  // RESPONSABLE
   // ====================================================================
 
   const responsibleBody = (row) => {
@@ -525,7 +798,7 @@ export default function Activities() {
 
 
   // ====================================================================
-  // AFFICHAGE UNITE
+  // UNITE
   // ====================================================================
 
   const unitBody = (row) => {
@@ -545,7 +818,7 @@ export default function Activities() {
 
 
   // ====================================================================
-  // AFFICHAGE INDICATEUR
+  // INDICATEUR
   // ====================================================================
 
   const indicatorBody = (row) => {
@@ -565,29 +838,33 @@ export default function Activities() {
 
 
   // ====================================================================
-  // AFFICHAGE EXERCICE
+  // EXERCICE
   // ====================================================================
 
   const exerciseBody = (row) => {
-    const plan = technicalPlanRecords.find(
-      (technicalPlan) =>
-        Number(technicalPlan.activity) ===
-        Number(row.id)
-    );
+    const plan =
+      technicalPlanRecords.find(
+        (technicalPlan) =>
+          Number(technicalPlan.activity) ===
+          Number(row.id)
+      );
 
     if (!plan) {
       return "—";
     }
 
     if (plan.workplan_year) {
-      return String(plan.workplan_year);
+      return String(
+        plan.workplan_year
+      );
     }
 
-    const workplan = workplanRecords.find(
-      (item) =>
-        Number(item.id) ===
-        Number(plan.workplan)
-    );
+    const workplan =
+      workplanRecords.find(
+        (item) =>
+          Number(item.id) ===
+          Number(plan.workplan)
+      );
 
     return workplan?.year
       ? String(workplan.year)
@@ -596,15 +873,16 @@ export default function Activities() {
 
 
   // ====================================================================
-  // AFFICHAGE QUANTITE
+  // QUANTITE
   // ====================================================================
 
   const quantityBody = (row) => {
-    const plan = technicalPlanRecords.find(
-      (technicalPlan) =>
-        Number(technicalPlan.activity) ===
-        Number(row.id)
-    );
+    const plan =
+      technicalPlanRecords.find(
+        (technicalPlan) =>
+          Number(technicalPlan.activity) ===
+          Number(row.id)
+      );
 
     if (!plan) {
       return "—";
@@ -618,7 +896,7 @@ export default function Activities() {
 
 
   // ====================================================================
-  // RETROUVER LA COMPOSANTE D'UNE SOUS-COMPOSANTE
+  // RETROUVER LA COMPOSANTE
   // ====================================================================
 
   const getComponentId = (programNodeId) => {
@@ -626,11 +904,12 @@ export default function Activities() {
       return null;
     }
 
-    const node = programNodeRecords.find(
-      (item) =>
-        Number(item.id) ===
-        Number(programNodeId)
-    );
+    const node =
+      programNodeRecords.find(
+        (item) =>
+          Number(item.id) ===
+          Number(programNodeId)
+      );
 
     return node?.parent || null;
   };
@@ -645,7 +924,11 @@ export default function Activities() {
       programNodeFilter || null;
 
     const initialComponent =
-      getComponentId(initialProgramNode);
+      initialProgramNode
+        ? getComponentId(
+            initialProgramNode
+          )
+        : componentFilter || null;
 
     setDialog({
       open: true,
@@ -657,7 +940,16 @@ export default function Activities() {
         program_node:
           initialProgramNode,
 
-        geo_unit:
+        wilaya:
+          null,
+
+        moughataa:
+          null,
+
+        commune:
+          null,
+
+        village:
           null,
 
         exercise:
@@ -672,7 +964,6 @@ export default function Activities() {
   // ====================================================================
 
   const openEdit = (row) => {
-
     const technicalPlan =
       technicalPlanRecords.find(
         (plan) =>
@@ -680,16 +971,21 @@ export default function Activities() {
           Number(row.id)
       );
 
-
     const associatedWorkplan =
       technicalPlan
         ? workplanRecords.find(
             (workplan) =>
               Number(workplan.id) ===
-              Number(technicalPlan.workplan)
+              Number(
+                technicalPlan.workplan
+              )
           )
         : null;
 
+    const geoHierarchy =
+      getGeoHierarchy(
+        row.geo_unit
+      );
 
     setDialog({
       open: true,
@@ -701,6 +997,8 @@ export default function Activities() {
           getComponentId(
             row.program_node
           ),
+
+        ...geoHierarchy,
 
         technical_plan_id:
           technicalPlan?.id || null,
@@ -723,18 +1021,6 @@ export default function Activities() {
         planned_end_date:
           technicalPlan?.planned_end_date ||
           null,
-
-        implementation_modality:
-          technicalPlan?.implementation_modality ||
-          "",
-
-        expected_output:
-          technicalPlan?.expected_output ||
-          "",
-
-        observations:
-          technicalPlan?.observations ||
-          "",
       },
     });
   };
@@ -747,23 +1033,22 @@ export default function Activities() {
   const saveAll = async (values) => {
 
     // ------------------------------------------------------------------
-    // 0. VALIDATIONS
+    // EXERCICE
     // ------------------------------------------------------------------
 
     const exerciseText =
-      String(values.exercise || "").trim();
-
+      String(
+        values.exercise || ""
+      ).trim();
 
     if (!/^\d{4}$/.test(exerciseText)) {
       throw new Error(
-        "L'exercice doit être une année à 4 chiffres, par exemple 2025."
+        "L'exercice doit être une année à 4 chiffres, par exemple 2026."
       );
     }
 
-
     const exercise =
       Number(exerciseText);
-
 
     if (
       exercise < 2010 ||
@@ -775,10 +1060,10 @@ export default function Activities() {
     }
 
 
-    /*
-     * La date de fin ne peut pas précéder
-     * la date de début.
-     */
+    // ------------------------------------------------------------------
+    // DATES
+    // ------------------------------------------------------------------
+
     if (
       values.planned_start_date &&
       values.planned_end_date &&
@@ -791,12 +1076,15 @@ export default function Activities() {
     }
 
 
+    // ------------------------------------------------------------------
+    // COMPOSANTE / SOUS-COMPOSANTE
+    // ------------------------------------------------------------------
+
     if (!values.component) {
       throw new Error(
         "La composante est obligatoire."
       );
     }
-
 
     if (!values.program_node) {
       throw new Error(
@@ -804,11 +1092,6 @@ export default function Activities() {
       );
     }
 
-
-    /*
-     * Vérifier que la sous-composante appartient
-     * réellement à la composante sélectionnée.
-     */
     const selectedSubcomponent =
       programNodeRecords.find(
         (node) =>
@@ -816,12 +1099,13 @@ export default function Activities() {
           Number(values.program_node)
       );
 
-
     if (
       !selectedSubcomponent ||
       selectedSubcomponent.node_type !==
         "SUBCOMPONENT" ||
-      Number(selectedSubcomponent.parent) !==
+      Number(
+        selectedSubcomponent.parent
+      ) !==
         Number(values.component)
     ) {
       throw new Error(
@@ -831,7 +1115,29 @@ export default function Activities() {
 
 
     // ------------------------------------------------------------------
-    // 1. RETROUVER OU CREER LE WORKPLAN CORRESPONDANT A L'EXERCICE
+    // ZONE D'INTERVENTION
+    //
+    // Règle :
+    //
+    // rien              => Global
+    // Wilaya             => Wilaya
+    // Moughataa          => Moughataa
+    // Commune            => Commune
+    // Village / Localité => Village / Localité
+    //
+    // On enregistre donc toujours le niveau le plus précis.
+    // ------------------------------------------------------------------
+
+    const selectedGeoUnit =
+      values.village ||
+      values.commune ||
+      values.moughataa ||
+      values.wilaya ||
+      null;
+
+
+    // ------------------------------------------------------------------
+    // WORKPLAN / EXERCICE
     // ------------------------------------------------------------------
 
     let selectedWorkplan =
@@ -841,16 +1147,7 @@ export default function Activities() {
           exercise
       );
 
-
-    /*
-     * Si aucun WorkPlan n'existe pour l'année saisie,
-     * on le crée automatiquement.
-     *
-     * La structure WorkPlan/PTBA de la base est conservée.
-     * L'utilisateur ne manipule que l'année "Exercice".
-     */
     if (!selectedWorkplan) {
-
       const createdWorkplan =
         await saveWorkplan.mutateAsync({
           body: {
@@ -874,29 +1171,21 @@ export default function Activities() {
           },
         });
 
-
       if (!createdWorkplan?.id) {
         throw new Error(
           `Impossible de créer l'exercice ${exercise}.`
         );
       }
 
-
       selectedWorkplan =
         createdWorkplan;
 
-
-      /*
-       * On rafraîchit la liste des exercices
-       * afin que le nouvel exercice soit immédiatement
-       * disponible dans l'interface.
-       */
       await workplans.refetch?.();
     }
 
 
     // ------------------------------------------------------------------
-    // 2. DONNEES ACTIVITY
+    // ACTIVITY
     // ------------------------------------------------------------------
 
     const activityBody = {
@@ -910,7 +1199,7 @@ export default function Activities() {
         values.program_node,
 
       geo_unit:
-        values.geo_unit || null,
+        selectedGeoUnit,
 
       responsible:
         values.responsible || null,
@@ -930,20 +1219,21 @@ export default function Activities() {
 
 
     // ------------------------------------------------------------------
-    // 3. ENREGISTRER L'ACTIVITE
+    // ENREGISTRER ACTIVITY
     // ------------------------------------------------------------------
 
     const savedActivity =
       await saveActivity.mutateAsync({
-        id: values.id,
-        body: activityBody,
-      });
+        id:
+          values.id,
 
+        body:
+          activityBody,
+      });
 
     const activityId =
       savedActivity?.id ||
       values.id;
-
 
     if (!activityId) {
       throw new Error(
@@ -953,7 +1243,27 @@ export default function Activities() {
 
 
     // ------------------------------------------------------------------
-    // 4. DONNEES TECHNICAL PLAN
+    // PRESERVER LES CHAMPS TECHNIQUES CACHES
+    //
+    // Ils ne sont plus modifiables depuis ce formulaire,
+    // mais on ne supprime pas leurs valeurs existantes.
+    // ------------------------------------------------------------------
+
+    const existingTechnicalPlan =
+      technicalPlanRecords.find(
+        (plan) =>
+          Number(plan.id) ===
+            Number(values.technical_plan_id) ||
+          (
+            !values.technical_plan_id &&
+            Number(plan.activity) ===
+              Number(activityId)
+          )
+      );
+
+
+    // ------------------------------------------------------------------
+    // TECHNICAL PLAN
     // ------------------------------------------------------------------
 
     const technicalPlanBody = {
@@ -964,36 +1274,48 @@ export default function Activities() {
         activityId,
 
       planned_quantity:
-        values.planned_quantity ?? null,
+        values.planned_quantity ??
+        null,
 
       unit:
-        values.unit || null,
+        values.unit ||
+        null,
 
       geo_unit:
-        values.geo_unit || null,
+        selectedGeoUnit,
 
       responsible:
-        values.responsible || null,
+        values.responsible ||
+        null,
 
       planned_start_date:
-        values.planned_start_date || null,
+        values.planned_start_date ||
+        null,
 
       planned_end_date:
-        values.planned_end_date || null,
+        values.planned_end_date ||
+        null,
 
+      /*
+       * Ces trois champs restent dans la base.
+       * On conserve leurs valeurs existantes.
+       */
       implementation_modality:
-        values.implementation_modality || "",
+        existingTechnicalPlan?.implementation_modality ||
+        "",
 
       expected_output:
-        values.expected_output || "",
+        existingTechnicalPlan?.expected_output ||
+        "",
 
       observations:
-        values.observations || "",
+        existingTechnicalPlan?.observations ||
+        "",
     };
 
 
     // ------------------------------------------------------------------
-    // 5. ENREGISTRER LA PROGRAMMATION
+    // ENREGISTRER PROGRAMMATION
     // ------------------------------------------------------------------
 
     await saveTechnicalPlan.mutateAsync({
@@ -1007,7 +1329,7 @@ export default function Activities() {
 
 
     // ------------------------------------------------------------------
-    // 6. RAFRAICHIR
+    // RAFRAICHIR
     // ------------------------------------------------------------------
 
     await refetch();
@@ -1015,7 +1337,6 @@ export default function Activities() {
     await technicalPlans.refetch?.();
 
     await workplans.refetch?.();
-
 
     setDialog({
       open: false,
@@ -1025,56 +1346,147 @@ export default function Activities() {
 
 
   // ====================================================================
-  // CHANGEMENT DES VALEURS DU FORMULAIRE
+  // CHANGEMENT DES VALEURS
   // ====================================================================
 
   const handleValuesChange = (next) => {
     setDialog((current) => {
+      const previous =
+        current.initial || {};
 
-      const previousComponent =
-        current.initial?.component ??
-        null;
 
-      const newComponent =
-        next.component ??
-        null;
-
+      // ----------------------------------------------------------------
+      // WILAYA CHANGE
+      // ----------------------------------------------------------------
 
       if (
-        Number(previousComponent || 0) !==
-        Number(newComponent || 0)
+        Number(
+          previous.wilaya || 0
+        ) !==
+        Number(
+          next.wilaya || 0
+        )
       ) {
         return {
           ...current,
 
           initial: {
             ...next,
-            program_node: null,
-            indicator: null,
+
+            moughataa:
+              null,
+
+            commune:
+              null,
+
+            village:
+              null,
           },
         };
       }
 
 
-      const previousProgramNode =
-        current.initial?.program_node ??
-        null;
-
-      const newProgramNode =
-        next.program_node ??
-        null;
-
+      // ----------------------------------------------------------------
+      // MOUGHATAA CHANGE
+      // ----------------------------------------------------------------
 
       if (
-        Number(previousProgramNode || 0) !==
-        Number(newProgramNode || 0)
+        Number(
+          previous.moughataa || 0
+        ) !==
+        Number(
+          next.moughataa || 0
+        )
       ) {
         return {
           ...current,
 
           initial: {
             ...next,
-            indicator: null,
+
+            commune:
+              null,
+
+            village:
+              null,
+          },
+        };
+      }
+
+
+      // ----------------------------------------------------------------
+      // COMMUNE CHANGE
+      // ----------------------------------------------------------------
+
+      if (
+        Number(
+          previous.commune || 0
+        ) !==
+        Number(
+          next.commune || 0
+        )
+      ) {
+        return {
+          ...current,
+
+          initial: {
+            ...next,
+
+            village:
+              null,
+          },
+        };
+      }
+
+
+      // ----------------------------------------------------------------
+      // COMPOSANTE CHANGE
+      // ----------------------------------------------------------------
+
+      if (
+        Number(
+          previous.component || 0
+        ) !==
+        Number(
+          next.component || 0
+        )
+      ) {
+        return {
+          ...current,
+
+          initial: {
+            ...next,
+
+            program_node:
+              null,
+
+            indicator:
+              null,
+          },
+        };
+      }
+
+
+      // ----------------------------------------------------------------
+      // SOUS-COMPOSANTE CHANGE
+      // ----------------------------------------------------------------
+
+      if (
+        Number(
+          previous.program_node || 0
+        ) !==
+        Number(
+          next.program_node || 0
+        )
+      ) {
+        return {
+          ...current,
+
+          initial: {
+            ...next,
+
+            indicator:
+              null,
           },
         };
       }
@@ -1106,52 +1518,116 @@ export default function Activities() {
         </h4>
 
 
-        {/* Recherche */}
-
         <span className="p-input-icon-left">
           <i className="pi pi-search" />
 
           <InputText
             value={search}
-            onChange={(e) =>
+
+            onChange={(e) => {
               setSearch(
                 e.target.value
-              )
-            }
+              );
+
+              setPage(1);
+            }}
+
             placeholder="Rechercher une activité..."
+
             style={{
-              minWidth: "16rem",
+              minWidth:
+                "16rem",
             }}
           />
         </span>
 
 
-        {/* Filtre sous-composante */}
+        {/* FILTRE COMPOSANTE */}
 
         <Dropdown
-          placeholder="Sous-composante"
-          value={programNodeFilter}
-          options={allSubcomponentOptions}
-          onChange={(e) =>
-            setProgramNodeFilter(
+          placeholder="Composante"
+
+          value={componentFilter}
+
+          options={allComponentOptions}
+
+          onChange={(e) => {
+            setComponentFilter(
               e.value
-            )
-          }
+            );
+
+            setProgramNodeFilter(
+              null
+            );
+
+            setPage(1);
+          }}
+
           filter
           showClear
+
           style={{
-            minWidth: "18rem",
+            minWidth:
+              "17rem",
           }}
         />
 
 
-        {/* Nouvelle activité */}
+        {/* FILTRE SOUS-COMPOSANTE */}
+
+        <Dropdown
+          placeholder="Sous-composante"
+
+          value={programNodeFilter}
+
+          options={allSubcomponentOptions}
+
+          onChange={(e) => {
+            setProgramNodeFilter(
+              e.value
+            );
+
+            if (e.value) {
+              const selectedNode =
+                programNodeRecords.find(
+                  (node) =>
+                    Number(node.id) ===
+                    Number(e.value)
+                );
+
+              if (selectedNode?.parent) {
+                setComponentFilter(
+                  selectedNode.parent
+                );
+              }
+            }
+
+            setPage(1);
+          }}
+
+          filter
+          showClear
+
+          style={{
+            minWidth:
+              "18rem",
+          }}
+        />
+
+
+        {/* NOUVELLE ACTIVITE */}
 
         {canCreate && (
           <Button
-            label={t("common.new")}
+            label={
+              t("common.new")
+            }
+
             icon="pi pi-plus"
-            onClick={openNew}
+
+            onClick={
+              openNew
+            }
           />
         )}
 
@@ -1164,91 +1640,169 @@ export default function Activities() {
 
       <DataTable
         value={rows}
+
         loading={isLoading}
+
         responsiveLayout="scroll"
+
         paginator
-        rows={25}
+        lazy
+
+        first={
+          (page - 1) *
+          rowsPerPage
+        }
+
+        rows={
+          rowsPerPage
+        }
+
+        totalRecords={
+          totalRecords
+        }
+
+        rowsPerPageOptions={[
+          25,
+          50,
+          100,
+        ]}
+
+        onPage={(event) => {
+          setPage(
+            event.page + 1
+          );
+
+          setRowsPerPage(
+            event.rows
+          );
+        }}
+
+        paginatorTemplate={
+          "FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
+        }
+
+        currentPageReportTemplate={
+          "{first} - {last} sur {totalRecords} activités"
+        }
+
         stripedRows
-        emptyMessage={t("common.empty")}
+
+        emptyMessage={
+          t("common.empty")
+        }
       >
 
         <Column
           field="code"
           header="Code"
+
           style={{
-            minWidth: "7rem",
+            minWidth:
+              "7rem",
           }}
         />
 
         <Column
           field="title"
           header="Intitulé activité"
+
           style={{
-            minWidth: "16rem",
+            minWidth:
+              "16rem",
           }}
         />
 
         <Column
           header="Sous-composante"
-          body={programNodeBody}
+          body={
+            programNodeBody
+          }
+
           style={{
-            minWidth: "16rem",
+            minWidth:
+              "16rem",
           }}
         />
 
         <Column
           header="Exercice"
-          body={exerciseBody}
+          body={
+            exerciseBody
+          }
+
           style={{
-            minWidth: "8rem",
+            minWidth:
+              "8rem",
           }}
         />
 
         <Column
           header="Quantité prévue"
-          body={quantityBody}
+          body={
+            quantityBody
+          }
+
           style={{
-            minWidth: "9rem",
+            minWidth:
+              "9rem",
           }}
         />
 
         <Column
           header="Zone d’intervention"
-          body={geoBody}
+          body={
+            geoBody
+          }
+
           style={{
-            minWidth: "12rem",
+            minWidth:
+              "12rem",
           }}
         />
 
         <Column
           header="Responsable"
-          body={responsibleBody}
+          body={
+            responsibleBody
+          }
+
           style={{
-            minWidth: "12rem",
+            minWidth:
+              "12rem",
           }}
         />
 
         <Column
           header="Unité"
-          body={unitBody}
+          body={
+            unitBody
+          }
+
           style={{
-            minWidth: "10rem",
+            minWidth:
+              "10rem",
           }}
         />
 
         <Column
           header="Indicateur"
-          body={indicatorBody}
+          body={
+            indicatorBody
+          }
+
           style={{
-            minWidth: "15rem",
+            minWidth:
+              "15rem",
           }}
         />
 
 
-        {/* Actions */}
+        {/* ACTIONS */}
 
         <Column
-          header={t("common.actions")}
+          header={
+            t("common.actions")
+          }
 
           body={(row) => (
             <div className="d-flex gap-2 align-items-center">
@@ -1259,10 +1813,14 @@ export default function Activities() {
                   text
                   rounded
                   size="small"
+
                   tooltip="Modifier"
+
                   tooltipOptions={{
-                    position: "top",
+                    position:
+                      "top",
                   }}
+
                   onClick={() =>
                     openEdit(row)
                   }
@@ -1273,7 +1831,8 @@ export default function Activities() {
           )}
 
           style={{
-            width: "6rem",
+            width:
+              "6rem",
           }}
         />
 
@@ -1281,22 +1840,31 @@ export default function Activities() {
 
 
       {/* ============================================================= */}
-      {/* FORMULAIRE UNIQUE ACTIVITE + PROGRAMMATION */}
+      {/* FORMULAIRE */}
       {/* ============================================================= */}
 
       <EntityFormDialog
-        visible={dialog.open}
+        visible={
+          dialog.open
+        }
 
         onHide={() =>
           setDialog({
-            open: false,
-            initial: null,
+            open:
+              false,
+
+            initial:
+              null,
           })
         }
 
-        fields={fields}
+        fields={
+          fields
+        }
 
-        initial={dialog.initial}
+        initial={
+          dialog.initial
+        }
 
         title={
           dialog.initial?.id
@@ -1304,9 +1872,13 @@ export default function Activities() {
             : "Nouvelle activité et programmation"
         }
 
-        onValuesChange={handleValuesChange}
+        onValuesChange={
+          handleValuesChange
+        }
 
-        onSubmit={saveAll}
+        onSubmit={
+          saveAll
+        }
       />
 
     </div>
