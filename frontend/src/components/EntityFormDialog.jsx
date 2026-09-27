@@ -9,33 +9,7 @@ import { InputText } from "primereact/inputtext";
 import { InputTextarea } from "primereact/inputtextarea";
 import { useTranslation } from "react-i18next";
 
-/*
- * fields:
- *
- * [
- *   {
- *     name,
- *     label,
- *     type,
- *     options?,
- *     required?,
- *     optionLabel?,
- *     optionValue?,
- *     visible?,
- *   }
- * ]
- *
- * options peut être :
- *
- *   - un tableau
- *   - une fonction (values) => tableau
- *
- * visible peut être :
- *
- *   - true / false
- *   - une fonction (values) => true / false
- */
-
+// fields: [{ name, label, type, options?, required?, optionLabel?, optionValue?, clearOnChange? }]
 export default function EntityFormDialog({
   visible,
   onHide,
@@ -46,7 +20,6 @@ export default function EntityFormDialog({
   onValuesChange,
 }) {
   const { t } = useTranslation();
-
   const [values, setValues] = useState({});
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -56,58 +29,23 @@ export default function EntityFormDialog({
     setErrors({});
   }, [initial, visible]);
 
-
-  // ------------------------------------------------------------------
-  // Modification d'une valeur du formulaire
-  // ------------------------------------------------------------------
-
-  const set = (name, value) => {
-    setValues((current) => {
+  const set = (name, v, field = null) =>
+    setValues((s) => {
       const next = {
-        ...current,
-        [name]: value,
+        ...s,
+        [name]: v,
       };
 
-      onValuesChange?.(next);
+      // Permet aux formulaires en cascade de vider les niveaux suivants.
+      (field?.clearOnChange || []).forEach(
+        (fieldName) => {
+          next[fieldName] = null;
+        }
+      );
 
+      onValuesChange?.(next);
       return next;
     });
-  };
-
-
-  // ------------------------------------------------------------------
-  // Visibilité dynamique d'un champ
-  // ------------------------------------------------------------------
-
-  const isFieldVisible = (field) => {
-    if (typeof field.visible === "function") {
-      return field.visible(values);
-    }
-
-    if (field.visible === false) {
-      return false;
-    }
-
-    return true;
-  };
-
-
-  // ------------------------------------------------------------------
-  // Options dynamiques
-  // ------------------------------------------------------------------
-
-  const getFieldOptions = (field) => {
-    if (typeof field.options === "function") {
-      return field.options(values) || [];
-    }
-
-    return field.options || [];
-  };
-
-
-  // ------------------------------------------------------------------
-  // Soumission
-  // ------------------------------------------------------------------
 
   const submit = async () => {
     setSaving(true);
@@ -122,41 +60,38 @@ export default function EntityFormDialog({
       if (data && typeof data === "object") {
         const mapped = {};
 
-        for (const [key, value] of Object.entries(data)) {
-          mapped[key] = Array.isArray(value)
-            ? value.join(" ")
-            : String(value);
+        for (const [k, v] of Object.entries(data)) {
+          mapped[k] = Array.isArray(v)
+            ? v.join(" ")
+            : String(v);
         }
 
         setErrors(mapped);
+      } else if (e?.message) {
+        setErrors({
+          detail: e.message,
+        });
       }
     } finally {
       setSaving(false);
     }
   };
 
-
-  // ------------------------------------------------------------------
-  // Rendu d'un champ
-  // ------------------------------------------------------------------
-
-  const renderField = (field) => {
-    const value = values[field.name];
-
+  const renderField = (f) => {
+    const v = values[f.name];
     const common = {
-      id: field.name,
+      id: f.name,
       className: "w-100",
     };
 
-    switch (field.type) {
-
+    switch (f.type) {
       case "number":
         return (
           <InputNumber
             {...common}
-            value={value ?? null}
+            value={v ?? null}
             onValueChange={(e) =>
-              set(field.name, e.value)
+              set(f.name, e.value, f)
             }
             mode="decimal"
             minFractionDigits={0}
@@ -164,52 +99,64 @@ export default function EntityFormDialog({
           />
         );
 
-
       case "textarea":
         return (
           <InputTextarea
             {...common}
-            value={value ?? ""}
+            value={v ?? ""}
             onChange={(e) =>
-              set(field.name, e.target.value)
+              set(
+                f.name,
+                e.target.value,
+                f
+              )
             }
             rows={3}
           />
         );
 
+      case "dropdown": {
+        const resolvedOptions =
+          typeof f.options === "function"
+            ? f.options(values)
+            : f.options || [];
 
-      case "dropdown":
         return (
           <Dropdown
             {...common}
-            value={value ?? null}
-            options={getFieldOptions(field)}
-            optionLabel={field.optionLabel || "label"}
-            optionValue={field.optionValue || "value"}
+            value={v ?? null}
+            options={resolvedOptions}
+            optionLabel={
+              f.optionLabel || "label"
+            }
+            optionValue={
+              f.optionValue || "value"
+            }
             onChange={(e) =>
-              set(field.name, e.value)
+              set(f.name, e.value, f)
             }
             filter
-            showClear={!field.required}
+            showClear={!f.required}
           />
         );
-
+      }
 
       case "date":
         return (
           <Calendar
             {...common}
             value={
-              value
-                ? new Date(value)
-                : null
+              v ? new Date(v) : null
             }
             onChange={(e) =>
               set(
-                field.name,
+                f.name,
                 e.value
-                  ? e.value.toISOString().slice(0, 10)
-                  : null
+                  ? e.value
+                      .toISOString()
+                      .slice(0, 10)
+                  : null,
+                f
               )
             }
             dateFormat="yy-mm-dd"
@@ -217,35 +164,36 @@ export default function EntityFormDialog({
           />
         );
 
-
       case "checkbox":
         return (
           <Checkbox
-            checked={!!value}
+            checked={!!v}
             onChange={(e) =>
-              set(field.name, e.checked)
+              set(
+                f.name,
+                e.checked,
+                f
+              )
             }
           />
         );
-
 
       default:
         return (
           <InputText
             {...common}
-            value={value ?? ""}
+            value={v ?? ""}
             onChange={(e) =>
-              set(field.name, e.target.value)
+              set(
+                f.name,
+                e.target.value,
+                f
+              )
             }
           />
         );
     }
   };
-
-
-  // ------------------------------------------------------------------
-  // Interface
-  // ------------------------------------------------------------------
 
   return (
     <Dialog
@@ -256,46 +204,37 @@ export default function EntityFormDialog({
       maximizable
     >
       <div className="row g-3">
-
-        {(fields || [])
-          .filter(isFieldVisible)
-          .map((field) => (
-
-            <div
-              className={
-                field.full
-                  ? "col-12"
-                  : "col-12 col-md-6"
-              }
-              key={field.name}
+        {(fields || []).map((f) => (
+          <div
+            className={
+              f.full
+                ? "col-12"
+                : "col-12 col-md-6"
+            }
+            key={f.name}
+          >
+            <label
+              htmlFor={f.name}
+              className="form-label"
             >
-
-              <label
-                htmlFor={field.name}
-                className="form-label"
-              >
-                {field.label}
-
-                {field.required && (
-                  <span className="text-danger">
-                    {" "}*
-                  </span>
-                )}
-              </label>
-
-              {renderField(field)}
-
-              {errors[field.name] && (
-                <div className="text-danger small">
-                  {errors[field.name]}
-                </div>
+              {f.label}
+              {f.required && (
+                <span className="text-danger">
+                  {" "}*
+                </span>
               )}
+            </label>
 
-            </div>
-          ))}
+            {renderField(f)}
 
+            {errors[f.name] && (
+              <div className="text-danger small">
+                {errors[f.name]}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
-
 
       {errors.detail && (
         <div className="text-danger mt-2">
@@ -303,9 +242,7 @@ export default function EntityFormDialog({
         </div>
       )}
 
-
       <div className="d-flex justify-content-end gap-2 mt-3">
-
         <Button
           label={t("common.cancel")}
           text
@@ -317,9 +254,7 @@ export default function EntityFormDialog({
           loading={saving}
           onClick={submit}
         />
-
       </div>
-
     </Dialog>
   );
 }

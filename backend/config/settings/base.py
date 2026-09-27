@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "apps.procurement",
     "apps.grievances",
     "apps.reporting",
+    "apps.infrastructure",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

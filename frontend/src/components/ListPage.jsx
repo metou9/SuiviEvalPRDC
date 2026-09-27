@@ -33,6 +33,7 @@ import EntityFormDialog from "./EntityFormDialog.jsx";
  *  - prepareBody: optional transform form values -> API body
  *                 if provided, it has priority over fromForm
  *  - actionsBody: optional (row) => node appended to the actions column
+ *  - headerActions: optional custom actions displayed in page header
  */
 export default function ListPage({
   title,
@@ -49,8 +50,11 @@ export default function ListPage({
   prepareBody,
 
   actionsBody,
+
+  headerActions,
 }) {
   const { t } = useTranslation();
+
 
   // ==================================================================
   // ETAT LOCAL
@@ -71,6 +75,7 @@ export default function ListPage({
       initial: null,
     });
 
+
   // ==================================================================
   // PARAMETRES DE LISTE
   // ==================================================================
@@ -90,6 +95,7 @@ export default function ListPage({
 
     ...extraParams,
   };
+
 
   // ==================================================================
   // API
@@ -113,6 +119,7 @@ export default function ListPage({
       resourceName
     );
 
+
   // ==================================================================
   // DONNEES
   // ==================================================================
@@ -125,6 +132,7 @@ export default function ListPage({
   const total =
     data?.count ??
     records.length;
+
 
   // ==================================================================
   // CREATION / MODIFICATION
@@ -163,6 +171,7 @@ export default function ListPage({
     });
   };
 
+
   // ==================================================================
   // SUPPRESSION
   // ==================================================================
@@ -186,24 +195,34 @@ export default function ListPage({
         ),
     });
 
+
   // ==================================================================
   // PAGE
   // ==================================================================
 
   return (
     <div>
+
       <ConfirmDialog />
+
 
       {/* ============================================================ */}
       {/* ENTETE                                                      */}
       {/* ============================================================ */}
 
       <div className="d-flex align-items-center mb-3 gap-2 flex-wrap">
+
         <h4 className="m-0 me-auto">
           {title}
         </h4>
 
+
+        {/* ---------------------------------------------------------- */}
+        {/* RECHERCHE                                                 */}
+        {/* ---------------------------------------------------------- */}
+
         <span className="p-input-icon-left">
+
           <i className="pi pi-search" />
 
           <InputText
@@ -227,7 +246,20 @@ export default function ListPage({
               );
             }}
           />
+
         </span>
+
+
+        {/* ---------------------------------------------------------- */}
+        {/* ACTIONS PERSONNALISEES                                    */}
+        {/* ---------------------------------------------------------- */}
+
+        {headerActions}
+
+
+        {/* ---------------------------------------------------------- */}
+        {/* NOUVEAU                                                   */}
+        {/* ---------------------------------------------------------- */}
 
         {canManage && fields && (
           <Button
@@ -247,7 +279,9 @@ export default function ListPage({
             }
           />
         )}
+
       </div>
+
 
       {/* ============================================================ */}
       {/* TABLEAU                                                     */}
@@ -296,6 +330,7 @@ export default function ListPage({
 
         stripedRows
       >
+
         {columns.map((column) => (
           <Column
             key={
@@ -320,6 +355,11 @@ export default function ListPage({
           />
         ))}
 
+
+        {/* ========================================================== */}
+        {/* ACTIONS                                                   */}
+        {/* ========================================================== */}
+
         {(canManage || actionsBody) && (
           <Column
             header={
@@ -330,10 +370,14 @@ export default function ListPage({
 
             body={(row) => (
               <div className="d-flex gap-2 align-items-center">
+
+                {/* Action personnalisée */}
                 {actionsBody?.(
                   row
                 )}
 
+
+                {/* Modifier */}
                 {canManage && fields && (
                   <Button
                     icon="pi pi-pencil"
@@ -357,6 +401,8 @@ export default function ListPage({
                   />
                 )}
 
+
+                {/* Supprimer */}
                 {canManage && (
                   <Button
                     icon="pi pi-trash"
@@ -376,11 +422,14 @@ export default function ListPage({
                     }
                   />
                 )}
+
               </div>
             )}
           />
         )}
+
       </DataTable>
+
 
       {/* ============================================================ */}
       {/* FORMULAIRE                                                  */}
@@ -416,6 +465,7 @@ export default function ListPage({
           }
         />
       )}
+
     </div>
   );
 }

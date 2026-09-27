@@ -19,6 +19,11 @@ export default function Budget() {
     ordering: "code",
   });
 
+  const programNodes = useList("programNodes", {
+    page_size: 1000,
+    ordering: "order,code",
+  });
+
   const cats = useList("expenseCategories", {
     page_size: 1000,
   });
@@ -36,6 +41,11 @@ export default function Budget() {
     activities.data ||
     [];
 
+  const programNodeRecords =
+    programNodes.data?.results ||
+    programNodes.data ||
+    [];
+
   const catRecords =
     cats.data?.results ||
     cats.data ||
@@ -47,7 +57,76 @@ export default function Budget() {
     [];
 
   // ====================================================================
-  // OPTIONS ACTIVITES
+  // COMPOSANTES
+  // ====================================================================
+
+  const componentRecords = useMemo(
+    () =>
+      programNodeRecords.filter(
+        (node) => node.node_type === "COMPONENT"
+      ),
+    [programNodeRecords]
+  );
+
+  const componentOpts = useMemo(
+    () =>
+      componentRecords.map((node) => ({
+        label: node.code
+          ? `${node.code} — ${node.name}`
+          : node.name,
+        value: node.id,
+      })),
+    [componentRecords]
+  );
+
+  // ====================================================================
+  // SOUS-COMPOSANTES SELON LA COMPOSANTE
+  // ====================================================================
+
+  const getSubcomponentOpts = (values) => {
+    if (!values.component) {
+      return [];
+    }
+
+    return programNodeRecords
+      .filter(
+        (node) =>
+          node.node_type === "SUBCOMPONENT" &&
+          Number(node.parent) === Number(values.component)
+      )
+      .map((node) => ({
+        label: node.code
+          ? `${node.code} — ${node.name}`
+          : node.name,
+        value: node.id,
+      }));
+  };
+
+  // ====================================================================
+  // ACTIVITES SELON LA SOUS-COMPOSANTE
+  // ====================================================================
+
+  const getActivityOpts = (values) => {
+    if (!values.program_node) {
+      return [];
+    }
+
+    return activityRecords
+      .filter(
+        (activity) =>
+          Number(activity.program_node) ===
+          Number(values.program_node)
+      )
+      .map((activity) => ({
+        label: activity.code
+          ? `${activity.code} — ${activity.title}`
+          : activity.title,
+        value: activity.id,
+      }));
+  };
+
+  // ====================================================================
+  // OPTIONS ACTIVITES (AFFICHAGE TABLEAU)
   // ====================================================================
 
   const activityOpts = useMemo(
@@ -56,15 +135,10 @@ export default function Budget() {
         label: activity.code
           ? `${activity.code} — ${activity.title}`
           : activity.title,
-
         value: activity.id,
       })),
     [activityRecords]
   );
-
-  // ====================================================================
-  // OPTIONS CATEGORIES DE DEPENSE
-  // ====================================================================
 
   const catOpts = useMemo(
     () =>
@@ -72,15 +146,10 @@ export default function Budget() {
         label: category.code
           ? `${category.code} — ${category.name}`
           : category.name,
-
         value: category.id,
       })),
     [catRecords]
   );
-
-  // ====================================================================
-  // OPTIONS SOURCES DE FINANCEMENT
-  // ====================================================================
 
   const fundOpts = useMemo(
     () =>
@@ -88,7 +157,6 @@ export default function Budget() {
         label: fund.code
           ? `${fund.code} — ${fund.name}`
           : fund.name,
-
         value: fund.id,
       })),
     [fundRecords]
@@ -99,65 +167,92 @@ export default function Budget() {
   // ====================================================================
 
   const activityLabel = (id) => {
-    if (!id) {
-      return "—";
-    }
+    if (!id) return "—";
 
     return (
       activityOpts.find(
         (option) =>
-          Number(option.value) ===
-          Number(id)
+          Number(option.value) === Number(id)
       )?.label || "—"
     );
   };
 
   const catLabel = (id) => {
-    if (!id) {
-      return "—";
-    }
+    if (!id) return "—";
 
     return (
       catOpts.find(
         (option) =>
-          Number(option.value) ===
-          Number(id)
+          Number(option.value) === Number(id)
       )?.label || "—"
     );
   };
 
   const fundLabel = (id) => {
-    if (!id) {
-      return "—";
-    }
+    if (!id) return "—";
 
     return (
       fundOpts.find(
         (option) =>
-          Number(option.value) ===
-          Number(id)
+          Number(option.value) === Number(id)
       )?.label || "—"
     );
   };
 
   // ====================================================================
-  // PREPARATION AVANT ENREGISTREMENT
-  //
-  // La sous-composante est récupérée automatiquement depuis l'activité.
+  // PREPARATION POUR MODIFICATION
   // ====================================================================
 
-  const prepareBody = (values) => {
-
-    // ------------------------------------------------------------------
-    // ACTIVITE
-    // ------------------------------------------------------------------
-
+  const toForm = (row) => {
     const selectedActivity =
       activityRecords.find(
         (activity) =>
-          Number(activity.id) ===
-          Number(values.activity)
+          Number(activity.id) === Number(row.activity)
       );
+
+    const subcomponentId =
+      selectedActivity?.program_node ||
+      row.program_node ||
+      null;
+
+    const selectedSubcomponent =
+      programNodeRecords.find(
+        (node) =>
+          Number(node.id) === Number(subcomponentId)
+      );
+
+    return {
+      ...row,
+      component:
+        selectedSubcomponent?.parent ||
+        row.component_id ||
+        null,
+      program_node: subcomponentId,
+    };
+  };
+
+  // ====================================================================
+  // PREPARATION AVANT ENREGISTREMENT
+  // ====================================================================
+
+  const fromForm = (values) => {
+    const selectedActivity =
+      activityRecords.find(
+        (activity) =>
+          Number(activity.id) === Number(values.activity)
+      );
+
+    if (!values.component) {
+      throw new Error(
+        "Veuillez sélectionner une composante."
+      );
+    }
+
+    if (!values.program_node) {
+      throw new Error(
+        "Veuillez sélectionner une sous-composante."
+      );
+    }
 
     if (!selectedActivity) {
       throw new Error(
@@ -165,14 +260,33 @@ export default function Budget() {
       );
     }
 
-    // ------------------------------------------------------------------
-    // EXERCICE
-    // ------------------------------------------------------------------
+    if (
+      Number(selectedActivity.program_node) !==
+      Number(values.program_node)
+    ) {
+      throw new Error(
+        "L'activité sélectionnée n'appartient pas à la sous-composante choisie."
+      );
+    }
+
+    const selectedSubcomponent =
+      programNodeRecords.find(
+        (node) =>
+          Number(node.id) === Number(values.program_node)
+      );
+
+    if (
+      !selectedSubcomponent ||
+      Number(selectedSubcomponent.parent) !==
+        Number(values.component)
+    ) {
+      throw new Error(
+        "La sous-composante sélectionnée n'appartient pas à la composante choisie."
+      );
+    }
 
     const exerciseText =
-      String(
-        values.fiscal_year || ""
-      ).trim();
+      String(values.fiscal_year || "").trim();
 
     if (!/^\d{4}$/.test(exerciseText)) {
       throw new Error(
@@ -180,8 +294,7 @@ export default function Budget() {
       );
     }
 
-    const fiscalYear =
-      Number(exerciseText);
+    const fiscalYear = Number(exerciseText);
 
     if (
       fiscalYear < 2010 ||
@@ -191,10 +304,6 @@ export default function Budget() {
         "L'exercice doit être compris entre 2010 et 2090."
       );
     }
-
-    // ------------------------------------------------------------------
-    // MONTANT
-    // ------------------------------------------------------------------
 
     if (
       values.amount === null ||
@@ -206,36 +315,24 @@ export default function Budget() {
       );
     }
 
-    // ------------------------------------------------------------------
-    // DONNEES ENVOYEES A L'API
-    // ------------------------------------------------------------------
-
     return {
-      activity:
-        selectedActivity.id,
+      activity: selectedActivity.id,
 
-      // Sous-composante récupérée automatiquement depuis l'activité.
+      // La sous-composante est déduite de l'activité choisie.
       program_node:
-        selectedActivity.program_node ||
-        null,
+        selectedActivity.program_node || null,
 
       expense_category:
-        values.expense_category ||
-        null,
+        values.expense_category || null,
 
       funding_source:
-        values.funding_source ||
-        null,
+        values.funding_source || null,
 
-      fiscal_year:
-        fiscalYear,
+      fiscal_year: fiscalYear,
 
-      amount:
-        values.amount,
+      amount: values.amount,
 
-      note:
-        values.note ||
-        "",
+      note: values.note || "",
     };
   };
 
@@ -253,15 +350,8 @@ export default function Budget() {
         )
       }
 
-      // ---------------------------------------------------------------
-      // PREPARATION AVANT SAUVEGARDE
-      // ---------------------------------------------------------------
-
-      prepareBody={prepareBody}
-
-      // ---------------------------------------------------------------
-      // TABLEAU
-      // ---------------------------------------------------------------
+      toForm={toForm}
+      fromForm={fromForm}
 
       columns={[
         {
@@ -275,9 +365,7 @@ export default function Budget() {
                 : row.activity_title;
             }
 
-            return activityLabel(
-              row.activity
-            );
+            return activityLabel(row.activity);
           },
         },
 
@@ -288,15 +376,10 @@ export default function Budget() {
 
         {
           field: "expense_category",
-          header:
-            t(
-              "finance.category"
-            ),
+          header: t("finance.category"),
 
           body: (row) => {
-            if (
-              row.expense_category_name
-            ) {
+            if (row.expense_category_name) {
               return row.expense_category_name;
             }
 
@@ -308,13 +391,10 @@ export default function Budget() {
 
         {
           field: "funding_source",
-          header:
-            "Source de financement",
+          header: "Source de financement",
 
           body: (row) => {
-            if (
-              row.funding_source_name
-            ) {
+            if (row.funding_source_name) {
               return row.funding_source_name;
             }
 
@@ -326,27 +406,46 @@ export default function Budget() {
 
         {
           field: "amount",
-          header:
-            "Montant programmé",
+          header: "Montant programmé",
         },
 
         {
           field: "note",
-          header:
-            "Observation",
+          header: "Observation",
         },
       ]}
 
-      // ---------------------------------------------------------------
-      // FORMULAIRE
-      // ---------------------------------------------------------------
-
       fields={[
+        {
+          name: "component",
+          label: "Composante",
+          type: "dropdown",
+          options: componentOpts,
+          required: true,
+          clearOnChange: [
+            "program_node",
+            "activity",
+          ],
+          full: true,
+        },
+
+        {
+          name: "program_node",
+          label: "Sous-composante",
+          type: "dropdown",
+          options: getSubcomponentOpts,
+          required: true,
+          clearOnChange: [
+            "activity",
+          ],
+          full: true,
+        },
+
         {
           name: "activity",
           label: "Activité",
           type: "dropdown",
-          options: activityOpts,
+          options: getActivityOpts,
           required: true,
           full: true,
         },
@@ -361,34 +460,28 @@ export default function Budget() {
 
         {
           name: "expense_category",
-          label:
-            t(
-              "finance.category"
-            ),
+          label: t("finance.category"),
           type: "dropdown",
           options: catOpts,
         },
 
         {
           name: "funding_source",
-          label:
-            "Source de financement",
+          label: "Source de financement",
           type: "dropdown",
           options: fundOpts,
         },
 
         {
           name: "amount",
-          label:
-            "Montant programmé",
+          label: "Montant programmé",
           type: "number",
           required: true,
         },
 
         {
           name: "note",
-          label:
-            "Observation",
+          label: "Observation",
           type: "text",
           full: true,
         },

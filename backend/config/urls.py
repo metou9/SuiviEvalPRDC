@@ -2,15 +2,23 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
 )
+
 from rest_framework.routers import DefaultRouter
+
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+
+
+# ======================================================================
+# ACCOUNTS
+# ======================================================================
 
 from apps.accounts.views import (
     MeView,
@@ -20,6 +28,11 @@ from apps.accounts.views import (
     UserViewSet,
 )
 
+
+# ======================================================================
+# ACTIVITIES
+# ======================================================================
+
 from apps.activities.views import (
     ActivityViewSet,
     TechnicalExecutionViewSet,
@@ -27,6 +40,11 @@ from apps.activities.views import (
     TechnicalScheduleViewSet,
     WorkPlanViewSet,
 )
+
+
+# ======================================================================
+# CORE
+# ======================================================================
 
 from apps.core.views import (
     ActorViewSet,
@@ -38,6 +56,11 @@ from apps.core.views import (
     UnitOfMeasureViewSet,
 )
 
+
+# ======================================================================
+# FINANCE
+# ======================================================================
+
 from apps.finance.views import (
     BudgetLineViewSet,
     ExpenseCategoryViewSet,
@@ -45,14 +68,29 @@ from apps.finance.views import (
     FundingSourceViewSet,
 )
 
+
+# ======================================================================
+# GEOGRAPHIE
+# ======================================================================
+
 from apps.geo.views import (
     GeoLevelViewSet,
     GeoUnitViewSet,
 )
 
+
+# ======================================================================
+# GRIEVANCES
+# ======================================================================
+
 from apps.grievances.views import (
     GrievanceTypeViewSet,
 )
+
+
+# ======================================================================
+# INDICATEURS
+# ======================================================================
 
 from apps.indicators.views import (
     DimensionCategoryViewSet,
@@ -64,6 +102,18 @@ from apps.indicators.views import (
     MeasurementViewSet,
 )
 
+
+# ======================================================================
+# INFRASTRUCTURE
+# ======================================================================
+
+from apps.infrastructure.views import InfrastructureViewSet
+
+
+# ======================================================================
+# PASSATION DES MARCHES
+# ======================================================================
+
 from apps.procurement.views import (
     PPMItemViewSet,
     ProcurementMethodViewSet,
@@ -72,9 +122,19 @@ from apps.procurement.views import (
     StageEventViewSet,
 )
 
+
+# ======================================================================
+# PROGRAMME
+# ======================================================================
+
 from apps.program.views import (
     ProgramNodeViewSet,
 )
+
+
+# ======================================================================
+# REPORTING
+# ======================================================================
 
 from apps.reporting.views import (
     FinancialDashboard,
@@ -278,6 +338,17 @@ router.register(
 
 
 # ======================================================================
+# INFRASTRUCTURE
+# ======================================================================
+
+router.register(
+    "infrastructures",
+    InfrastructureViewSet,
+    basename="infrastructure",
+)
+
+
+# ======================================================================
 # GRIEVANCES
 # ======================================================================
 
@@ -375,6 +446,7 @@ router.register(
 # ======================================================================
 
 api_v1 = [
+
     # ------------------------------------------------------------------
     # Authentification
     # ------------------------------------------------------------------
@@ -463,6 +535,7 @@ api_v1 = [
 # ======================================================================
 
 urlpatterns = [
+
     path(
         "admin/",
         admin.site.urls,

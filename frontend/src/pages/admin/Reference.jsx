@@ -60,22 +60,6 @@ export default function Reference() {
 
 
   // ------------------------------------------------------------------
-  // Options Niveau des acteurs
-  // ------------------------------------------------------------------
-
-  const actorLevelOptions = [
-    {
-      label: "Central",
-      value: "CENTRAL",
-    },
-    {
-      label: "Local",
-      value: "LOCAL",
-    },
-  ];
-
-
-  // ------------------------------------------------------------------
   // Affichage Type Programme
   // ------------------------------------------------------------------
 
@@ -86,23 +70,6 @@ export default function Reference() {
 
     if (value === "SUBCOMPONENT") {
       return "Sous Composante";
-    }
-
-    return value || "";
-  };
-
-
-  // ------------------------------------------------------------------
-  // Affichage Niveau Acteur
-  // ------------------------------------------------------------------
-
-  const actorLevelLabel = (value) => {
-    if (value === "CENTRAL") {
-      return "Niveau central";
-    }
-
-    if (value === "LOCAL") {
-      return "Niveau local";
     }
 
     return value || "";
@@ -529,66 +496,6 @@ export default function Reference() {
               {
                 name: "symbol",
                 label: "Symbole",
-                type: "text",
-              },
-            ]}
-          />
-        </TabPanel>
-
-
-        {/* ========================================================== */}
-        {/* Acteurs */}
-        {/* ========================================================== */}
-
-        <TabPanel
-          header={t("nav.actors")}
-        >
-          <ListPage
-            title={t("nav.actors")}
-            resourceName="actors"
-            canManage={canManage}
-
-            columns={[
-              ...codeName,
-
-              {
-                field: "level",
-                header: "Niveau",
-                body: (row) =>
-                  actorLevelLabel(row.level),
-              },
-
-              {
-                field: "phone",
-                header: "Téléphone",
-              },
-
-              {
-                field: "email",
-                header: "Email",
-              },
-            ]}
-
-            fields={[
-              ...codeNameFields,
-
-              {
-                name: "level",
-                label: "Niveau",
-                type: "dropdown",
-                required: true,
-                options: actorLevelOptions,
-              },
-
-              {
-                name: "phone",
-                label: "Téléphone",
-                type: "text",
-              },
-
-              {
-                name: "email",
-                label: "Email",
                 type: "text",
               },
             ]}
