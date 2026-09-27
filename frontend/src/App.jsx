@@ -19,25 +19,37 @@ import Archive from "./pages/Archive.jsx";
 import Activities from "./pages/Activities.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Home from "./pages/Home.jsx";
-import Indicators from "./pages/Indicators.jsx";
 import Login from "./pages/Login.jsx";
 import Measurements from "./pages/Measurements.jsx";
 import Profile from "./pages/Profile.jsx";
 import Reports from "./pages/Reports.jsx";
 
+/* Performance */
+import Indicators from "./pages/performance/Indicators.jsx";
+import Impact from "./pages/performance/Impact.jsx";
+
 /* Infrastructure */
 import Infrastructure from "./pages/infrastructure/Infrastructure.jsx";
 
+/* KoboToolbox */
+import KoboToolbox from "./pages/kobotoolbox/KoboToolbox.jsx";
+import MGP from "./pages/kobotoolbox/mgp/MGP.jsx";
+import Interconnection from "./pages/kobotoolbox/interconnection/Interconnection.jsx";
+import SocialCohesion from "./pages/kobotoolbox/social-cohesion/SocialCohesion.jsx";
+
+/* Administration */
 import AdminIndicators from "./pages/admin/AdminIndicators.jsx";
 import Geo from "./pages/admin/Geo.jsx";
 import Program from "./pages/admin/Program.jsx";
 import Reference from "./pages/admin/Reference.jsx";
 import Users from "./pages/admin/Users.jsx";
 
+/* Finance */
 import Budget from "./pages/finance/Budget.jsx";
 import FinanceDashboard from "./pages/finance/FinanceDashboard.jsx";
 import Transactions from "./pages/finance/Transactions.jsx";
 
+/* Passation des marchés */
 import Ppm from "./pages/procurement/Ppm.jsx";
 import ProcurementDashboard from "./pages/procurement/ProcurementDashboard.jsx";
 import Processes from "./pages/procurement/Processes.jsx";
@@ -101,13 +113,25 @@ export default function App() {
 
 
                 {/* -------------------------------------------------
-                    INDICATEURS
+                    PERFORMANCE
                 ------------------------------------------------- */}
 
+                {/* Cadre de résultats */}
                 <Route
                   path="/indicators"
                   element={<Indicators />}
                 />
+
+                {/* Impact */}
+                <Route
+                  path="/impact"
+                  element={<Impact />}
+                />
+
+
+                {/* -------------------------------------------------
+                    MESURES / INDICATEURS D'EXECUTION
+                ------------------------------------------------- */}
 
                 <Route
                   path="/measurements"
@@ -187,6 +211,35 @@ export default function App() {
                 <Route
                   path="/execution/infrastructure"
                   element={<Infrastructure />}
+                />
+
+
+                {/* -------------------------------------------------
+                    KOBOTOOLBOX
+                ------------------------------------------------- */}
+
+                {/* Page d'accueil KoboToolbox */}
+                <Route
+                  path="/kobotoolbox"
+                  element={<KoboToolbox />}
+                />
+
+                {/* Gestion des plaintes - MGP */}
+                <Route
+                  path="/kobotoolbox/mgp"
+                  element={<MGP />}
+                />
+
+                {/* Interconnexion transfrontalière */}
+                <Route
+                  path="/kobotoolbox/interconnection"
+                  element={<Interconnection />}
+                />
+
+                {/* Activités de cohésion sociale */}
+                <Route
+                  path="/kobotoolbox/social-cohesion"
+                  element={<SocialCohesion />}
                 />
 
 

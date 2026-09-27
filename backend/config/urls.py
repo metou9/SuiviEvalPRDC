@@ -14,6 +14,11 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+# ======================================================================
+# ARCHIVAGE
+# ======================================================================
+
+from apps.archive.views import ArchiveDocumentViewSet
 
 
 # ======================================================================
@@ -440,6 +445,11 @@ router.register(
     basename="report",
 )
 
+router.register(
+    "archive-documents",
+    ArchiveDocumentViewSet,
+    basename="archive-document",
+)
 
 # ======================================================================
 # API V1

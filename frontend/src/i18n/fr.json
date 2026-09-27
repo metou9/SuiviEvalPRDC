@@ -40,6 +40,12 @@
     "results": "Résultats",
     "result_indicators": "Suivi Indicateurs de Résultats",
 
+    "performance": "Performance",
+    "results_framework": "Cadre de résultats",
+
+    "kobotoolbox": "KoboToolbox",
+    "kobotoolbox_collection_analysis_results": "Collecte – Analyse – Résultats",
+    
     "printing": "Impression",
     "local_structures": "Suivi Structures Locale",
     "administration": "Gestion Administrative",

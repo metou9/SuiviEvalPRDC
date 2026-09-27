@@ -40,10 +40,16 @@
     "results": "Results",
     "result_indicators": "Results Indicator Monitoring",
 
+    "performance": "Performance",
+    "results_framework": "Results Framework",
+   
     "printing": "Printing",
     "local_structures": "Local Structures Monitoring",
     "administration": "Administrative Management",
     "archive": "Electronic Archive",
+
+    "kobotoolbox": "KoboToolbox",
+    "kobotoolbox_collection_analysis_results": "Collection – Analysis – Results",
 
     "indicators": "Results framework",
     "measurements": "Measurements",

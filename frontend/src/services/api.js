@@ -264,6 +264,34 @@ export const api = {
 
 
   // ================================================================
+  // ARCHIVAGE ELECTRONIQUE
+  // ================================================================
+
+  archiveDocuments: {
+    ...resource("archive-documents"),
+
+    /**
+     * Ajouter un document dans l'archivage électronique.
+     *
+     * formData contient :
+     * - title
+     * - file
+     * - project (si nécessaire selon le backend)
+     *
+     * La date d'import et l'utilisateur connecté
+     * sont renseignés automatiquement par le backend.
+     */
+    upload: (formData) =>
+      http
+        .post(
+          "/archive-documents/",
+          formData
+        )
+        .then((r) => r.data),
+  },
+
+
+  // ================================================================
   // PLAINTES
   // ================================================================
 

@@ -4,9 +4,9 @@ import { DataTable } from "primereact/datatable";
 import { TabPanel, TabView } from "primereact/tabview";
 import { useTranslation } from "react-i18next";
 
-import RagIndicator from "../components/RagIndicator.jsx";
-import { dashboards } from "../services/api.js";
-import { useList } from "../services/hooks.js";
+import RagIndicator from "../../components/RagIndicator.jsx";
+import { dashboards } from "../../services/api.js";
+import { useList } from "../../services/hooks.js";
 
 const TYPES = [
   { code: "PDO", label: "ODP" },

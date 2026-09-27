@@ -92,15 +92,20 @@ const SECTIONS = [
   },
 
   {
-    title: "results",
-    items: [
-      {
-        to: "/indicators",
-        key: "result_indicators",
-        icon: "pi-chart-bar",
-      },
-    ],
-  },
+  title: "performance",
+  items: [
+    {
+      to: "/indicators",
+      key: "results_framework",
+      icon: "pi-chart-bar",
+    },
+    {
+      to: "/impact",
+      key: "impact",
+      icon: "pi-chart-line",
+    },
+  ],
+},
 
   {
     title: "reports",
@@ -115,15 +120,15 @@ const SECTIONS = [
   },
 
   {
-    title: "local_structures",
-    items: [
-      {
-        to: "/local-structures",
-        key: "local_structures",
-        icon: "pi-building",
-      },
-    ],
-  },
+  title: "kobotoolbox",
+  items: [
+    {
+      to: "/kobotoolbox",
+      key: "kobotoolbox_collection_analysis_results",
+      icon: "pi-database",
+    },
+  ],
+},
 
   {
     title: "administration",

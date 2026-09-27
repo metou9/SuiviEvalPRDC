@@ -5,63 +5,93 @@ services:
     image: postgres:16
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}            # application DB, e.g. "mse"
-      POSTGRES_USER: ${POSTGRES_USER}        # application owner role
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      # Passed to init.sql via psql variables:
+
       METABASE_DB_PASSWORD: ${METABASE_DB_PASSWORD}
       METABASE_DB_RO_PASSWORD: ${METABASE_DB_RO_PASSWORD}
+
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./deploy/postgres/init.sql:/docker-entrypoint-initdb.d/10-init.sql:ro
+
     ports:
-      - "127.0.0.1:25433:5432"   # localhost only (handy for psql/backups; remove to fully isolate)
-    networks: [internal]
+      - "127.0.0.1:25433:5432"
+
+    networks:
+      - internal
+
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
 
+
   backend:
     build: ./backend
     restart: unless-stopped
-    env_file: .env
+
+    env_file:
+      - .env
+
     environment:
       DB_HOST: db
       DB_PORT: "5432"
+
     volumes:
-      - media:/app/media          # uploaded files (attachments, logos, generated reports)
+      - media:/app/media
       - staticfiles:/app/staticfiles
+
     depends_on:
       db:
         condition: service_healthy
+
     ports:
       - "127.0.0.1:28000:8000"
-    networks: [internal]
+
+    networks:
+      - internal
+
 
   frontend:
     build:
       context: ./frontend
       args:
         VITE_API_BASE_URL: /api/v1
-        VITE_MB_DASHBOARD_RESULTS_PHYSICAL:  ${VITE_MB_DASHBOARD_RESULTS_PHYSICAL:-}
+        VITE_MB_DASHBOARD_RESULTS_PHYSICAL: ${VITE_MB_DASHBOARD_RESULTS_PHYSICAL:-}
         VITE_MB_DASHBOARD_RESULTS_FRAMEWORK: ${VITE_MB_DASHBOARD_RESULTS_FRAMEWORK:-}
-        VITE_MB_DASHBOARD_FINANCE_CATEGORY:  ${VITE_MB_DASHBOARD_FINANCE_CATEGORY:-}
+        VITE_MB_DASHBOARD_FINANCE_CATEGORY: ${VITE_MB_DASHBOARD_FINANCE_CATEGORY:-}
         VITE_MB_DASHBOARD_FINANCE_COMPONENT: ${VITE_MB_DASHBOARD_FINANCE_COMPONENT:-}
-        VITE_MB_DASHBOARD_PROCUREMENT:       ${VITE_MB_DASHBOARD_PROCUREMENT:-}
-        VITE_MB_DASHBOARD_GRIEVANCES:        ${VITE_MB_DASHBOARD_GRIEVANCES:-}
-        VITE_MB_DASHBOARD_IMPACT:            ${VITE_MB_DASHBOARD_IMPACT:-}
-        VITE_MB_DASHBOARD_ACTIVITIES:        ${VITE_MB_DASHBOARD_ACTIVITIES:-}
+        VITE_MB_DASHBOARD_PROCUREMENT: ${VITE_MB_DASHBOARD_PROCUREMENT:-}
+        VITE_MB_DASHBOARD_GRIEVANCES: ${VITE_MB_DASHBOARD_GRIEVANCES:-}
+        VITE_MB_DASHBOARD_IMPACT: ${VITE_MB_DASHBOARD_IMPACT:-}
+        VITE_MB_DASHBOARD_ACTIVITIES: ${VITE_MB_DASHBOARD_ACTIVITIES:-}
+
     restart: unless-stopped
+
+    # Le frontend/Nginx accède aux documents importés
+    # en lecture seule.
+    volumes:
+      - media:/usr/share/nginx/media:ro
+
     ports:
       - "127.0.0.1:28080:8080"
-    networks: [internal]
+
+    networks:
+      - internal
+
 
 volumes:
   pgdata:
   media:
   staticfiles:
+
 
 networks:
   internal:
